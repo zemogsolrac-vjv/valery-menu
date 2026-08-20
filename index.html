@@ -20,9 +20,14 @@
   header { position: sticky; top: 0; z-index: 20; background: #2b2320; color: #fff; padding: 14px 16px 10px; text-align: center; }
   header h1 { margin: 0; font-size: 18px; font-weight: 700; }
   header .branch { margin: 2px 0 8px; font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.7); }
-  .langs { display: flex; gap: 6px; overflow-x: auto; justify-content: center; padding-bottom: 2px; }
-  .langs button { flex: 0 0 auto; border: 1px solid rgba(255,255,255,0.35); background: transparent; color: #fff; padding: 5px 11px; border-radius: 999px; font-size: 12px; }
-  .langs button.active { background: #fff; color: #2b2320; font-weight: 600; }
+  .lang-picker { display: flex; justify-content: center; padding-bottom: 2px; }
+  .lang-picker select {
+    appearance: none; -webkit-appearance: none; -moz-appearance: none;
+    border: 1px solid rgba(255,255,255,0.35); background: rgba(255,255,255,0.06) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="6" viewBox="0 0 10 6"><path d="M0 0l5 6 5-6z" fill="%23ffffff"/></svg>') no-repeat right 10px center;
+    color: #fff; padding: 6px 28px 6px 12px; border-radius: 999px; font-size: 12.5px; font-weight: 600;
+  }
+  .lang-picker select:focus { outline: 1px solid #fff; }
+  .lang-picker option { color: #2b2320; }
 
   .layout { display: flex; flex-direction: column; }
 
@@ -60,7 +65,7 @@
 <header>
   <h1 id="companyName">Menú</h1>
   <div class="branch" id="branchName" style="display:none"></div>
-  <div class="langs" id="langs"></div>
+  <div class="lang-picker"><select id="langSelect"></select></div>
 </header>
 <div class="layout">
   <nav class="categories" id="categories"></nav>
@@ -69,7 +74,18 @@
 <script>
   var SUPABASE_URL = 'https://losbulvhmemptrdjygpu.supabase.co';
   var ANON_KEY = 'sb_publishable_PqNnPS4GKsdJDSn2JtI1oQ_ecsozI1R';
-  var LANGS = {"es":"Español","en":"English","fr":"Français","de":"Deutsch","zh":"中文"};
+  // Orden pedido: inglés primero, español segundo, el resto detrás.
+  var LANGS = {
+    "en": "English",
+    "es": "Español",
+    "it": "Italiano",
+    "pt": "Português",
+    "da": "Dansk",
+    "th": "ภาษาไทย",
+    "fr": "Français",
+    "de": "Deutsch",
+    "zh": "中文"
+  };
   var ITEMS = [];
   var CATEGORY_ORDER = [];
   var selectedCategory = null;
@@ -80,8 +96,8 @@
 
   var stored = null;
   try { stored = localStorage.getItem('menuLang'); } catch (e) {}
-  var current = stored && LANGS[stored] ? stored : (navigator.language || 'es').slice(0, 2);
-  if (!LANGS[current]) current = 'es';
+  var current = stored && LANGS[stored] ? stored : (navigator.language || 'en').slice(0, 2);
+  if (!LANGS[current]) current = 'en';
 
   function fieldFor(item, prefix) {
     var v = item[prefix + '_' + current];
@@ -94,20 +110,20 @@
   }
 
   function renderLangs() {
-    var langsEl = document.getElementById('langs');
-    langsEl.innerHTML = '';
+    var select = document.getElementById('langSelect');
+    select.innerHTML = '';
     Object.keys(LANGS).forEach(function (code) {
-      var btn = document.createElement('button');
-      btn.textContent = LANGS[code];
-      if (code === current) btn.className = 'active';
-      btn.onclick = function () {
-        current = code;
-        try { localStorage.setItem('menuLang', code); } catch (e) {}
-        renderLangs();
-        renderContent();
-      };
-      langsEl.appendChild(btn);
+      var opt = document.createElement('option');
+      opt.value = code;
+      opt.textContent = LANGS[code];
+      if (code === current) opt.selected = true;
+      select.appendChild(opt);
     });
+    select.onchange = function () {
+      current = select.value;
+      try { localStorage.setItem('menuLang', current); } catch (e) {}
+      renderContent();
+    };
   }
 
   function renderCategoryNav() {
