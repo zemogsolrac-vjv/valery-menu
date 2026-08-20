@@ -28,11 +28,13 @@
 
   .categories { display: flex; overflow-x: auto; gap: 8px; padding: 10px 12px; background: #fff; position: sticky; top: 66px; z-index: 15; border-bottom: 1px solid #eee; -webkit-overflow-scrolling: touch; }
   .categories::-webkit-scrollbar { display: none; }
-  .categories button { flex: 0 0 auto; white-space: nowrap; border: none; background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 12.5px; letter-spacing: 0.02em; text-transform: uppercase; padding: 9px 16px; border-radius: 999px; }
+  .categories button { flex: 0 0 auto; white-space: nowrap; border: none; background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 12.5px; letter-spacing: 0.02em; text-transform: uppercase; padding: 9px 16px; border-radius: 999px; transition: background 0.15s, color 0.15s; }
   .categories button.active { background: var(--accent); color: #fff; }
 
-  main { padding: 14px 12px 48px; max-width: 900px; margin: 0 auto; }
-  .category-title { font-size: 15px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); font-weight: 700; margin: 0 4px 12px; }
+  main { padding: 14px 12px 48px; max-width: 900px; margin: 0 auto; flex: 1; min-width: 0; }
+  .category-section { scroll-margin-top: 122px; }
+  .category-title { font-size: 15px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); font-weight: 700; margin: 26px 4px 12px; }
+  .category-section:first-child .category-title { margin-top: 4px; }
 
   .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
   .card { background: var(--card-bg); border-radius: 14px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.08); display: flex; flex-direction: column; }
@@ -49,7 +51,7 @@
     .layout { flex-direction: row; align-items: flex-start; max-width: 1100px; margin: 0 auto; }
     .categories { flex-direction: column; overflow-x: visible; width: 230px; flex-shrink: 0; padding: 16px 12px; position: sticky; top: 78px; border-bottom: none; border-right: 1px solid #eee; height: calc(100vh - 78px); }
     .categories button { text-align: left; border-radius: 10px; padding: 12px 14px; }
-    main { flex: 1; }
+    .category-section { scroll-margin-top: 90px; }
     .grid { grid-template-columns: repeat(3, 1fr); }
   }
 </style>
@@ -87,6 +89,10 @@
     return item[prefix + '_es'] || '';
   }
 
+  function slugify(cat) {
+    return 'cat-' + cat.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  }
+
   function renderLangs() {
     var langsEl = document.getElementById('langs');
     langsEl.innerHTML = '';
@@ -98,30 +104,94 @@
         current = code;
         try { localStorage.setItem('menuLang', code); } catch (e) {}
         renderLangs();
-        renderCategories();
-        renderGrid();
+        renderContent();
       };
       langsEl.appendChild(btn);
     });
   }
 
-  function renderCategories() {
+  function renderCategoryNav() {
     var nav = document.getElementById('categories');
     nav.innerHTML = '';
     CATEGORY_ORDER.forEach(function (cat) {
       var btn = document.createElement('button');
       btn.textContent = cat;
+      btn.dataset.category = cat;
       if (cat === selectedCategory) btn.className = 'active';
       btn.onclick = function () {
-        selectedCategory = cat;
-        renderCategories();
-        renderGrid();
+        var section = document.getElementById(slugify(cat));
+        if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
       };
       nav.appendChild(btn);
     });
   }
 
-  function renderGrid() {
+  function highlightActiveCategory() {
+    var buttons = document.querySelectorAll('#categories button');
+    buttons.forEach(function (btn) {
+      if (btn.dataset.category === selectedCategory) {
+        btn.classList.add('active');
+        // Mantiene el botón activo visible dentro de la barra scrollable en móvil.
+        if (window.innerWidth < 860 && btn.scrollIntoView) {
+          btn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        }
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+  }
+
+  function buildCard(item) {
+    var card = document.createElement('div');
+    card.className = 'card';
+
+    if (item.image_url) {
+      var img = document.createElement('img');
+      img.className = 'thumb';
+      img.src = item.image_url;
+      img.loading = 'lazy';
+      img.alt = '';
+      card.appendChild(img);
+    } else {
+      var ph = document.createElement('div');
+      ph.className = 'thumb-placeholder';
+      ph.textContent = (fieldFor(item, 'name') || '?').charAt(0).toUpperCase();
+      card.appendChild(ph);
+    }
+
+    var body = document.createElement('div');
+    body.className = 'card-body';
+
+    var name = document.createElement('div');
+    name.className = 'card-name';
+    name.textContent = fieldFor(item, 'name');
+    body.appendChild(name);
+
+    var desc = fieldFor(item, 'description');
+    if (desc) {
+      var descEl = document.createElement('div');
+      descEl.className = 'card-desc';
+      descEl.textContent = desc;
+      body.appendChild(descEl);
+    }
+
+    if (item.price !== null && item.price !== undefined) {
+      var price = document.createElement('div');
+      price.className = 'card-price';
+      price.textContent = Number(item.price).toFixed(2).replace('.', ',') + ' €';
+      body.appendChild(price);
+    }
+
+    card.appendChild(body);
+    return card;
+  }
+
+  // Todas las categorías se pintan seguidas, una tras otra, en una sola
+  // página continua (nada de filtrar/ocultar) — al llegar al final de una
+  // categoría se sigue directo con la siguiente sin ningún corte. La barra
+  // de categorías es solo un atajo para saltar de un salto a una sección,
+  // y se resalta sola según por dónde vas scrolleando (ver updateActiveFromScroll).
+  function renderContent() {
     var main = document.getElementById('main');
     main.innerHTML = '';
 
@@ -133,62 +203,54 @@
       return;
     }
 
-    var title = document.createElement('div');
-    title.className = 'category-title';
-    title.textContent = selectedCategory;
-    main.appendChild(title);
+    var byCategory = {};
+    ITEMS.forEach(function (item) {
+      var cat = item.category || 'General';
+      (byCategory[cat] = byCategory[cat] || []).push(item);
+    });
 
-    var grid = document.createElement('div');
-    grid.className = 'grid';
+    CATEGORY_ORDER.forEach(function (cat) {
+      var section = document.createElement('section');
+      section.className = 'category-section';
+      section.id = slugify(cat);
+      section.dataset.category = cat;
 
-    ITEMS.filter(function (item) { return (item.category || 'General') === selectedCategory; })
-      .forEach(function (item) {
-        var card = document.createElement('div');
-        card.className = 'card';
+      var title = document.createElement('div');
+      title.className = 'category-title';
+      title.textContent = cat;
+      section.appendChild(title);
 
-        if (item.image_url) {
-          var img = document.createElement('img');
-          img.className = 'thumb';
-          img.src = item.image_url;
-          img.loading = 'lazy';
-          img.alt = '';
-          card.appendChild(img);
-        } else {
-          var ph = document.createElement('div');
-          ph.className = 'thumb-placeholder';
-          ph.textContent = (fieldFor(item, 'name') || '?').charAt(0).toUpperCase();
-          card.appendChild(ph);
-        }
+      var grid = document.createElement('div');
+      grid.className = 'grid';
+      byCategory[cat].forEach(function (item) { grid.appendChild(buildCard(item)); });
+      section.appendChild(grid);
 
-        var body = document.createElement('div');
-        body.className = 'card-body';
+      main.appendChild(section);
+    });
 
-        var name = document.createElement('div');
-        name.className = 'card-name';
-        name.textContent = fieldFor(item, 'name');
-        body.appendChild(name);
-
-        var desc = fieldFor(item, 'description');
-        if (desc) {
-          var descEl = document.createElement('div');
-          descEl.className = 'card-desc';
-          descEl.textContent = desc;
-          body.appendChild(descEl);
-        }
-
-        if (item.price !== null && item.price !== undefined) {
-          var price = document.createElement('div');
-          price.className = 'card-price';
-          price.textContent = Number(item.price).toFixed(2).replace('.', ',') + ' €';
-          body.appendChild(price);
-        }
-
-        card.appendChild(body);
-        grid.appendChild(card);
-      });
-
-    main.appendChild(grid);
+    highlightActiveCategory();
   }
+
+  var scrollTicking = false;
+  function updateActiveFromScroll() {
+    var refY = window.innerWidth >= 860 ? 100 : 130;
+    var sections = document.querySelectorAll('.category-section');
+    var current = null;
+    sections.forEach(function (sec) {
+      if (sec.getBoundingClientRect().top <= refY) current = sec;
+    });
+    if (!current) current = sections[0];
+    if (current && current.dataset.category !== selectedCategory) {
+      selectedCategory = current.dataset.category;
+      highlightActiveCategory();
+    }
+  }
+  window.addEventListener('scroll', function () {
+    if (!scrollTicking) {
+      window.requestAnimationFrame(function () { updateActiveFromScroll(); scrollTicking = false; });
+      scrollTicking = true;
+    }
+  }, { passive: true });
 
   if (!companyId) {
     document.getElementById('main').innerHTML = '<div class="empty">Falta el identificador de la empresa en el enlace.</div>';
@@ -221,8 +283,8 @@
         selectedCategory = CATEGORY_ORDER[0] || null;
 
         renderLangs();
-        renderCategories();
-        renderGrid();
+        renderCategoryNav();
+        renderContent();
       })
       .catch(function () {
         document.getElementById('main').innerHTML = '<div class="empty">No se pudo cargar el menú. Comprueba tu conexión.</div>';
