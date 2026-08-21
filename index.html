@@ -69,6 +69,39 @@
   .card-allergens { display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 6px; }
   .card-allergen { font-size: 9.5px; font-weight: 600; padding: 1px 6px; border-radius: 999px; background: #f1ece4; color: var(--muted); white-space: nowrap; }
   .card-price { margin-top: auto; font-weight: 700; font-size: 14.5px; color: var(--accent); }
+  .card { cursor: pointer; }
+
+  /* Ficha de producto (modal al hacer clic en una tarjeta) */
+  body.modal-open { overflow: hidden; }
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 100; display: flex; align-items: flex-end; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+  .modal-overlay.open { opacity: 1; pointer-events: auto; }
+  .modal-sheet { background: var(--card-bg); width: 100%; max-width: 480px; max-height: 92vh; border-radius: 18px 18px 0 0; overflow-y: auto; -webkit-overflow-scrolling: touch; position: relative; transform: translateY(24px); transition: transform 0.2s; }
+  .modal-overlay.open .modal-sheet { transform: translateY(0); }
+  .modal-close { position: absolute; top: 10px; right: 10px; z-index: 2; width: 32px; height: 32px; border-radius: 50%; border: none; background: rgba(0,0,0,0.45); color: #fff; font-size: 15px; line-height: 1; display: flex; align-items: center; justify-content: center; }
+  .modal-carousel { position: relative; width: 100%; aspect-ratio: 1 / 1; background: #ece4d8; }
+  .modal-scroll { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; width: 100%; height: 100%; scrollbar-width: none; }
+  .modal-scroll::-webkit-scrollbar { display: none; }
+  .modal-scroll img { flex: 0 0 100%; width: 100%; height: 100%; object-fit: cover; scroll-snap-align: start; cursor: zoom-in; }
+  .modal-dots { position: absolute; bottom: 10px; left: 0; right: 0; display: flex; justify-content: center; gap: 5px; }
+  .modal-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.55); transition: background 0.15s, transform 0.15s; }
+  .modal-dot.active { background: #fff; transform: scale(1.25); }
+  .modal-placeholder { width: 100%; aspect-ratio: 1 / 1; display: flex; align-items: center; justify-content: center; background: #ece4d8; color: var(--muted); font-size: 48px; font-weight: 700; }
+  .modal-body { padding: 16px 18px 26px; }
+  .modal-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
+  .modal-name { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+  .modal-allergens { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
+  .modal-desc { font-size: 14px; color: var(--text); line-height: 1.5; margin-bottom: 14px; white-space: pre-wrap; }
+  .modal-price { font-size: 20px; font-weight: 700; color: var(--accent); }
+  @media (min-width: 860px) {
+    .modal-overlay { align-items: center; }
+    .modal-sheet { border-radius: 18px; max-height: 88vh; }
+  }
+
+  /* Foto a pantalla completa con zoom real (pellizcar) al tocar la imagen dentro de la ficha */
+  .lightbox { position: fixed; inset: 0; background: #000; z-index: 200; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+  .lightbox.open { opacity: 1; pointer-events: auto; }
+  .lightbox img { max-width: 100%; max-height: 100%; }
+  .lightbox-close { position: absolute; top: 14px; right: 14px; width: 36px; height: 36px; border-radius: 50%; border: none; background: rgba(255,255,255,0.18); color: #fff; font-size: 17px; }
 
   .allergen-legend { margin: 32px 4px 0; padding: 14px; background: var(--card-bg); border-radius: 12px; font-size: 11px; color: var(--muted); line-height: 1.6; }
   .allergen-legend strong { display: block; color: var(--text); font-size: 12px; margin-bottom: 6px; }
@@ -96,6 +129,13 @@
 <div class="layout">
   <nav class="categories" id="categories"></nav>
   <main id="main"><div class="loading">Cargando menú…</div></main>
+</div>
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-sheet" id="modalSheet"></div>
+</div>
+<div class="lightbox" id="lightbox">
+  <button class="lightbox-close" id="lightboxClose" aria-label="Cerrar">✕</button>
+  <img id="lightboxImg" src="" alt="">
 </div>
 <script>
   var SUPABASE_URL = 'https://losbulvhmemptrdjygpu.supabase.co';
@@ -384,8 +424,158 @@
     }
 
     card.appendChild(body);
+    // Clic en cualquier parte de la tarjeta abre la ficha grande del
+    // producto — incluso si el clic cae encima del carrusel de fotos,
+    // porque un arrastre real para deslizar entre fotos no dispara
+    // "click" en los navegadores (solo un toque suelto lo hace).
+    card.addEventListener('click', function () { openDetail(item); });
     return card;
   }
+
+  // Ficha de producto: mismo contenido que la tarjeta pero en grande,
+  // con la foto ampliable y la descripción completa sin recortar.
+  function openDetail(item) {
+    var images = Array.isArray(item.images) && item.images.length ? item.images : (item.image_url ? [item.image_url] : []);
+    var sheet = document.getElementById('modalSheet');
+    sheet.innerHTML = '';
+
+    var closeBtn = document.createElement('button');
+    closeBtn.className = 'modal-close';
+    closeBtn.textContent = '✕';
+    closeBtn.setAttribute('aria-label', 'Cerrar');
+    closeBtn.onclick = closeDetail;
+    sheet.appendChild(closeBtn);
+
+    if (images.length) {
+      var carousel = document.createElement('div');
+      carousel.className = 'modal-carousel';
+      var scroller = document.createElement('div');
+      scroller.className = 'modal-scroll';
+      images.forEach(function (src) {
+        var img = document.createElement('img');
+        img.src = src;
+        img.loading = 'lazy';
+        img.alt = '';
+        img.addEventListener('click', function (e) {
+          e.stopPropagation();
+          openLightbox(src);
+        });
+        scroller.appendChild(img);
+      });
+      carousel.appendChild(scroller);
+      if (images.length > 1) {
+        var dots = document.createElement('div');
+        dots.className = 'modal-dots';
+        images.forEach(function (_, i) {
+          var dot = document.createElement('span');
+          dot.className = 'modal-dot' + (i === 0 ? ' active' : '');
+          dots.appendChild(dot);
+        });
+        carousel.appendChild(dots);
+        scroller.addEventListener('scroll', function () {
+          var idx = Math.round(scroller.scrollLeft / Math.max(scroller.clientWidth, 1));
+          Array.prototype.forEach.call(dots.children, function (dot, i) {
+            dot.classList.toggle('active', i === idx);
+          });
+        }, { passive: true });
+      }
+      sheet.appendChild(carousel);
+    } else {
+      var ph = document.createElement('div');
+      ph.className = 'modal-placeholder';
+      ph.textContent = (fieldFor(item, 'name') || '?').charAt(0).toUpperCase();
+      sheet.appendChild(ph);
+    }
+
+    var body = document.createElement('div');
+    body.className = 'modal-body';
+
+    var tags = Array.isArray(item.tags) ? item.tags.slice() : [];
+    if (item.is_bestseller) tags = ['recomendado'].concat(tags);
+    var tagLabels = tags.map(tagLabel).filter(Boolean);
+    if (tagLabels.length) {
+      var tagsWrap = document.createElement('div');
+      tagsWrap.className = 'modal-tags';
+      tagLabels.forEach(function (label) {
+        var chip = document.createElement('span');
+        chip.className = 'card-tag';
+        chip.textContent = label;
+        tagsWrap.appendChild(chip);
+      });
+      body.appendChild(tagsWrap);
+    }
+
+    var name = document.createElement('div');
+    name.className = 'modal-name';
+    name.textContent = fieldFor(item, 'name');
+    body.appendChild(name);
+
+    var allergenLabels = (Array.isArray(item.allergens) ? item.allergens : []).map(allergenLabel).filter(Boolean);
+    if (allergenLabels.length) {
+      var allergensWrap = document.createElement('div');
+      allergensWrap.className = 'modal-allergens';
+      allergenLabels.forEach(function (label) {
+        var badge = document.createElement('span');
+        badge.className = 'card-allergen';
+        badge.textContent = label;
+        allergensWrap.appendChild(badge);
+      });
+      body.appendChild(allergensWrap);
+    }
+
+    var desc = fieldFor(item, 'description');
+    if (desc) {
+      var descEl = document.createElement('div');
+      descEl.className = 'modal-desc';
+      descEl.textContent = desc;
+      body.appendChild(descEl);
+    }
+
+    if (item.price !== null && item.price !== undefined) {
+      var price = document.createElement('div');
+      price.className = 'modal-price';
+      price.textContent = Number(item.price).toFixed(2).replace('.', ',') + ' €';
+      body.appendChild(price);
+    }
+
+    sheet.appendChild(body);
+
+    document.getElementById('modalOverlay').classList.add('open');
+    document.body.classList.add('modal-open');
+  }
+
+  function closeDetail() {
+    document.getElementById('modalOverlay').classList.remove('open');
+    document.body.classList.remove('modal-open');
+  }
+
+  document.getElementById('modalOverlay').addEventListener('click', function (e) {
+    if (e.target.id === 'modalOverlay') closeDetail();
+  });
+
+  // Zoom real de la foto (pellizcar con los dedos): el <meta viewport>
+  // general trae maximum-scale=1 para que el menú no se desalinee si
+  // alguien toca sin querer la pantalla, pero eso también bloquea el
+  // pellizco para ampliar. Al abrir la foto a pantalla completa se afloja
+  // ese límite solo mientras está abierta, y se restaura al cerrarla.
+  var viewportMeta = document.querySelector('meta[name="viewport"]');
+  var originalViewportContent = viewportMeta ? viewportMeta.getAttribute('content') : '';
+  function openLightbox(src) {
+    document.getElementById('lightboxImg').src = src;
+    document.getElementById('lightbox').classList.add('open');
+    if (viewportMeta) viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1, maximum-scale=4');
+  }
+  function closeLightbox() {
+    document.getElementById('lightbox').classList.remove('open');
+    if (viewportMeta) viewportMeta.setAttribute('content', originalViewportContent);
+  }
+  document.getElementById('lightboxClose').addEventListener('click', function (e) {
+    e.stopPropagation();
+    closeLightbox();
+  });
+  document.getElementById('lightbox').addEventListener('click', function (e) {
+    if (e.target.id === 'lightbox') closeLightbox();
+  });
 
   // Todas las categorías se pintan seguidas, una tras otra, en una sola
   // página continua (nada de filtrar/ocultar) — al llegar al final de una
