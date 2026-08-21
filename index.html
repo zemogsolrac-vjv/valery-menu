@@ -54,6 +54,13 @@
   .card.bestseller { box-shadow: 0 0 0 2px var(--accent), 0 4px 10px rgba(0,0,0,0.12); }
   .card .thumb { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; background: #ece4d8; display: block; }
   .card .thumb-placeholder { width: 100%; aspect-ratio: 1 / 1; background: #ece4d8; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 24px; font-weight: 700; }
+  .card .thumb-carousel { position: relative; width: 100%; aspect-ratio: 1 / 1; overflow: hidden; }
+  .card .thumb-scroll { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; width: 100%; height: 100%; scrollbar-width: none; }
+  .card .thumb-scroll::-webkit-scrollbar { display: none; }
+  .card .thumb-scroll img { flex: 0 0 100%; width: 100%; height: 100%; object-fit: cover; scroll-snap-align: start; background: #ece4d8; }
+  .card .thumb-dots { position: absolute; bottom: 6px; left: 0; right: 0; display: flex; justify-content: center; gap: 4px; pointer-events: none; }
+  .card .thumb-dot { width: 5px; height: 5px; border-radius: 50%; background: rgba(255,255,255,0.55); box-shadow: 0 0 1px rgba(0,0,0,0.3); transition: background 0.15s, transform 0.15s; }
+  .card .thumb-dot.active { background: #fff; transform: scale(1.2); }
   .card-body { padding: 10px 10px 12px; flex: 1; display: flex; flex-direction: column; }
   .card-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 4px; }
   .card-tag { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); white-space: nowrap; }
@@ -275,10 +282,46 @@
     var card = document.createElement('div');
     card.className = 'card' + (item.is_bestseller ? ' bestseller' : '');
 
-    if (item.image_url) {
+    // Hasta 5 fotos por plato (principal + hasta 4 extra, ver
+    // extra_photos en la app): con más de una se pinta un carrusel
+    // deslizable con puntos indicadores; con una sola o ninguna, se
+    // mantiene el comportamiento de siempre (imagen fija o placeholder).
+    var images = Array.isArray(item.images) && item.images.length ? item.images : (item.image_url ? [item.image_url] : []);
+    if (images.length > 1) {
+      var carousel = document.createElement('div');
+      carousel.className = 'thumb-carousel';
+      var scroller = document.createElement('div');
+      scroller.className = 'thumb-scroll';
+      images.forEach(function (src) {
+        var img = document.createElement('img');
+        img.src = src;
+        img.loading = 'lazy';
+        img.alt = '';
+        scroller.appendChild(img);
+      });
+      carousel.appendChild(scroller);
+
+      var dots = document.createElement('div');
+      dots.className = 'thumb-dots';
+      images.forEach(function (_, i) {
+        var dot = document.createElement('span');
+        dot.className = 'thumb-dot' + (i === 0 ? ' active' : '');
+        dots.appendChild(dot);
+      });
+      carousel.appendChild(dots);
+
+      scroller.addEventListener('scroll', function () {
+        var idx = Math.round(scroller.scrollLeft / Math.max(scroller.clientWidth, 1));
+        Array.prototype.forEach.call(dots.children, function (dot, i) {
+          dot.classList.toggle('active', i === idx);
+        });
+      }, { passive: true });
+
+      card.appendChild(carousel);
+    } else if (images.length === 1) {
       var img = document.createElement('img');
       img.className = 'thumb';
-      img.src = item.image_url;
+      img.src = images[0];
       img.loading = 'lazy';
       img.alt = '';
       card.appendChild(img);
