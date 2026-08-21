@@ -274,8 +274,15 @@
   } else {
     var apiUrl = SUPABASE_URL + '/functions/v1/public-menu?company_id=' + encodeURIComponent(companyId);
     if (storeId) apiUrl += '&store_id=' + encodeURIComponent(storeId);
+    // cache: 'no-store' + parámetro de fecha: algunos navegadores móviles
+    // (sobre todo Safari en iOS al escanear un QR) ignoran el
+    // Cache-Control: no-store que ya manda la función y sirven una copia
+    // vieja de la respuesta guardada en su caché HTTP. Añadir un
+    // parámetro que cambia en cada carga hace que la URL nunca coincida
+    // con nada cacheado, así que siempre pide el dato fresco de verdad.
+    apiUrl += (apiUrl.indexOf('?') === -1 ? '?' : '&') + '_=' + Date.now();
 
-    fetch(apiUrl, { headers: { apikey: ANON_KEY, Authorization: 'Bearer ' + ANON_KEY } })
+    fetch(apiUrl, { cache: 'no-store', headers: { apikey: ANON_KEY, Authorization: 'Bearer ' + ANON_KEY } })
       .then(function (res) { return res.json(); })
       .then(function (data) {
         if (data.error) {
