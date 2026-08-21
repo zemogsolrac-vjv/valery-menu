@@ -289,13 +289,14 @@
           document.getElementById('main').innerHTML = '<div class="empty">' + data.error + '</div>';
           return;
         }
-        document.title = (data.company_name || 'Menú') + ' · Menú';
-        document.getElementById('companyName').textContent = data.company_name || 'Menú';
-        if (data.branch_name) {
-          var b = document.getElementById('branchName');
-          b.textContent = data.branch_name;
-          b.style.display = '';
-        }
+        // El título grande es la SUCURSAL (lo que quiere ver el cliente
+        // al escanear: "soy Fañabe", "soy El Bodegón"), no el nombre legal
+        // de la empresa — solo se cae al nombre de empresa si el enlace
+        // no trae sucursal (company_id sin store_id).
+        var displayName = data.branch_name || data.company_name || 'Menú';
+        document.title = displayName + ' · Menú';
+        document.getElementById('companyName').textContent = displayName;
+        document.getElementById('branchName').style.display = 'none';
         ITEMS = data.items || [];
 
         var seen = {};
