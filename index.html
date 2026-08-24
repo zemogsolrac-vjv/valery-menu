@@ -30,13 +30,15 @@
   .header-text { flex: 1; min-width: 0; text-align: center; }
   header h1 { margin: 0; font-size: 17px; font-weight: 700; }
   header .branch { margin: 1px 0 0; font-size: 11.5px; font-weight: 500; color: rgba(255,255,255,0.7); }
-  /* Selector de idioma: antes era un <select> nativo con los nombres en
-     texto — ahora es un icono de mundo que abre un menú propio con
-     banderas, más compacto en la cabecera y más visual al elegir. */
-  .lang-picker { position: relative; display: flex; justify-content: center; margin-top: 3px; }
-  .lang-btn { width: 30px; height: 30px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.35); background: rgba(255,255,255,0.08); color: #fff; font-size: 15px; display: flex; align-items: center; justify-content: center; line-height: 1; }
-  .lang-menu { position: absolute; top: 38px; left: 50%; transform: translateX(-50%) translateY(-6px); background: #fff; border-radius: 12px; box-shadow: 0 10px 28px rgba(0,0,0,0.28); padding: 6px; width: 190px; max-height: 62vh; overflow-y: auto; z-index: 30; opacity: 0; pointer-events: none; transition: opacity 0.15s, transform 0.15s; }
-  .lang-menu.open { opacity: 1; pointer-events: auto; transform: translateX(-50%) translateY(0); }
+  /* Selector de idioma: botón flotante fijo abajo a la derecha (como un
+     FAB), no dentro de la cabecera — así queda siempre a mano sin
+     importar cuánto hayas bajado en la carta, y no ocupa sitio arriba.
+     El menú se abre hacia ARRIBA desde el botón (no hacia abajo, porque
+     no hay espacio debajo al estar pegado al borde de la pantalla). */
+  .lang-picker { position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 40; }
+  .lang-btn { width: 48px; height: 48px; border-radius: 50%; border: none; background: #2b2320; color: #fff; font-size: 21px; display: flex; align-items: center; justify-content: center; line-height: 1; box-shadow: 0 6px 16px rgba(0,0,0,0.32); }
+  .lang-menu { position: absolute; right: 0; bottom: 58px; left: auto; top: auto; transform: translateY(8px); background: #fff; border-radius: 12px; box-shadow: 0 10px 28px rgba(0,0,0,0.28); padding: 6px; width: 190px; max-height: 55vh; overflow-y: auto; z-index: 30; opacity: 0; pointer-events: none; transition: opacity 0.15s, transform 0.15s; }
+  .lang-menu.open { opacity: 1; pointer-events: auto; transform: translateY(0); }
   .lang-menu button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 10px; border: none; background: none; border-radius: 8px; font-size: 13.5px; font-weight: 600; color: var(--text); text-align: left; }
   .lang-menu button.active { background: var(--accent-soft); color: var(--accent); }
   .lang-menu .flag { font-size: 18px; line-height: 1; }
@@ -136,10 +138,6 @@
     <div class="header-text">
       <h1 id="companyName">Menú</h1>
       <div class="branch" id="branchName" style="display:none"></div>
-      <div class="lang-picker">
-        <button class="lang-btn" id="langBtn" type="button" aria-label="Elegir idioma">🌐</button>
-        <div class="lang-menu" id="langMenu"></div>
-      </div>
       <div class="contact-links" id="contactLinks" style="display:none"></div>
     </div>
   </div>
@@ -147,6 +145,10 @@
 <div class="layout">
   <nav class="categories" id="categories"></nav>
   <main id="main"><div class="loading">Cargando menú…</div></main>
+</div>
+<div class="lang-picker">
+  <button class="lang-btn" id="langBtn" type="button" aria-label="Elegir idioma">🌐</button>
+  <div class="lang-menu" id="langMenu"></div>
 </div>
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal-sheet" id="modalSheet"></div>
