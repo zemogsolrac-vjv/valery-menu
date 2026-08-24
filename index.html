@@ -17,11 +17,20 @@
   * { box-sizing: border-box; }
   body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); }
 
-  header { position: sticky; top: 0; z-index: 20; background: #2b2320; color: #fff; padding: 14px 16px 10px; text-align: center; }
-  header .logo { max-height: 44px; max-width: 160px; object-fit: contain; margin-bottom: 6px; border-radius: 8px; }
-  header h1 { margin: 0; font-size: 18px; font-weight: 700; }
-  header .branch { margin: 2px 0 8px; font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.7); }
-  .lang-picker { display: flex; justify-content: center; align-items: center; gap: 8px; padding-bottom: 2px; }
+  /* Antes el logo iba apilado ENCIMA del título (columna centrada), lo
+     que hacía la cabecera muy alta — sobre todo en pantallas anchas
+     (escritorio/iPad), donde sobra ancho de sobra pero se desperdiciaba
+     en alto. Ahora es una fila: el logo se queda a la izquierda (mismo
+     sitio de siempre) centrado verticalmente, y el título/sucursal/
+     idioma quedan centrados en el espacio que sobra — así la barra
+     ocupa mucho menos alto sin mover el logo del lado izquierdo. */
+  header { position: sticky; top: 0; z-index: 20; background: #2b2320; color: #fff; padding: 8px 16px; }
+  .header-inner { display: flex; align-items: center; gap: 12px; max-width: 900px; margin: 0 auto; }
+  header .logo { max-height: 40px; max-width: 120px; object-fit: contain; border-radius: 6px; flex-shrink: 0; margin-bottom: 0; }
+  .header-text { flex: 1; min-width: 0; text-align: center; }
+  header h1 { margin: 0; font-size: 17px; font-weight: 700; }
+  header .branch { margin: 1px 0 0; font-size: 11.5px; font-weight: 500; color: rgba(255,255,255,0.7); }
+  .lang-picker { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 3px; padding-bottom: 0; }
   .lang-picker select {
     appearance: none; -webkit-appearance: none; -moz-appearance: none;
     border: 1px solid rgba(255,255,255,0.35); background: rgba(255,255,255,0.06) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="6" viewBox="0 0 10 6"><path d="M0 0l5 6 5-6z" fill="%23ffffff"/></svg>') no-repeat right 10px center;
@@ -39,13 +48,13 @@
 
   .layout { display: flex; flex-direction: column; }
 
-  .categories { display: flex; overflow-x: auto; gap: 8px; padding: 10px 12px; background: #fff; position: sticky; top: 66px; z-index: 15; border-bottom: 1px solid #eee; -webkit-overflow-scrolling: touch; }
+  .categories { display: flex; overflow-x: auto; gap: 8px; padding: 10px 12px; background: #fff; position: sticky; top: 52px; z-index: 15; border-bottom: 1px solid #eee; -webkit-overflow-scrolling: touch; }
   .categories::-webkit-scrollbar { display: none; }
   .categories button { flex: 0 0 auto; white-space: nowrap; border: none; background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 12.5px; letter-spacing: 0.02em; text-transform: uppercase; padding: 9px 16px; border-radius: 999px; transition: background 0.15s, color 0.15s; }
   .categories button.active { background: var(--accent); color: #fff; }
 
   main { padding: 14px 12px 48px; max-width: 900px; margin: 0 auto; flex: 1; min-width: 0; }
-  .category-section { scroll-margin-top: 122px; }
+  .category-section { scroll-margin-top: 96px; }
   .category-title { font-size: 15px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); font-weight: 700; margin: 26px 4px 12px; }
   .category-section:first-child .category-title { margin-top: 4px; }
 
@@ -111,20 +120,24 @@
 
   @media (min-width: 860px) {
     .layout { flex-direction: row; align-items: flex-start; max-width: 1100px; margin: 0 auto; }
-    .categories { flex-direction: column; overflow-x: visible; width: 230px; flex-shrink: 0; padding: 16px 12px; position: sticky; top: 78px; border-bottom: none; border-right: 1px solid #eee; height: calc(100vh - 78px); }
+    .categories { flex-direction: column; overflow-x: visible; width: 230px; flex-shrink: 0; padding: 16px 12px; position: sticky; top: 60px; border-bottom: none; border-right: 1px solid #eee; height: calc(100vh - 60px); }
     .categories button { text-align: left; border-radius: 10px; padding: 12px 14px; }
-    .category-section { scroll-margin-top: 90px; }
+    .category-section { scroll-margin-top: 72px; }
     .grid { grid-template-columns: repeat(3, 1fr); }
   }
 </style>
 </head>
 <body>
 <header>
-  <img id="logoImg" class="logo" style="display:none" alt="">
-  <h1 id="companyName">Menú</h1>
-  <div class="branch" id="branchName" style="display:none"></div>
-  <div class="lang-picker"><select id="langSelect"></select></div>
-  <div class="contact-links" id="contactLinks" style="display:none"></div>
+  <div class="header-inner">
+    <img id="logoImg" class="logo" style="display:none" alt="">
+    <div class="header-text">
+      <h1 id="companyName">Menú</h1>
+      <div class="branch" id="branchName" style="display:none"></div>
+      <div class="lang-picker"><select id="langSelect"></select></div>
+      <div class="contact-links" id="contactLinks" style="display:none"></div>
+    </div>
+  </div>
 </header>
 <div class="layout">
   <nav class="categories" id="categories"></nav>
