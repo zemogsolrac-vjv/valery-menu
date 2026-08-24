@@ -30,14 +30,16 @@
   .header-text { flex: 1; min-width: 0; text-align: center; }
   header h1 { margin: 0; font-size: 17px; font-weight: 700; }
   header .branch { margin: 1px 0 0; font-size: 11.5px; font-weight: 500; color: rgba(255,255,255,0.7); }
-  .lang-picker { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 3px; padding-bottom: 0; }
-  .lang-picker select {
-    appearance: none; -webkit-appearance: none; -moz-appearance: none;
-    border: 1px solid rgba(255,255,255,0.35); background: rgba(255,255,255,0.06) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="6" viewBox="0 0 10 6"><path d="M0 0l5 6 5-6z" fill="%23ffffff"/></svg>') no-repeat right 10px center;
-    color: #fff; padding: 6px 28px 6px 12px; border-radius: 999px; font-size: 12.5px; font-weight: 600;
-  }
-  .lang-picker select:focus { outline: 1px solid #fff; }
-  .lang-picker option { color: #2b2320; }
+  /* Selector de idioma: antes era un <select> nativo con los nombres en
+     texto — ahora es un icono de mundo que abre un menú propio con
+     banderas, más compacto en la cabecera y más visual al elegir. */
+  .lang-picker { position: relative; display: flex; justify-content: center; margin-top: 3px; }
+  .lang-btn { width: 30px; height: 30px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.35); background: rgba(255,255,255,0.08); color: #fff; font-size: 15px; display: flex; align-items: center; justify-content: center; line-height: 1; }
+  .lang-menu { position: absolute; top: 38px; left: 50%; transform: translateX(-50%) translateY(-6px); background: #fff; border-radius: 12px; box-shadow: 0 10px 28px rgba(0,0,0,0.28); padding: 6px; width: 190px; max-height: 62vh; overflow-y: auto; z-index: 30; opacity: 0; pointer-events: none; transition: opacity 0.15s, transform 0.15s; }
+  .lang-menu.open { opacity: 1; pointer-events: auto; transform: translateX(-50%) translateY(0); }
+  .lang-menu button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 10px; border: none; background: none; border-radius: 8px; font-size: 13.5px; font-weight: 600; color: var(--text); text-align: left; }
+  .lang-menu button.active { background: var(--accent-soft); color: var(--accent); }
+  .lang-menu .flag { font-size: 18px; line-height: 1; }
   .contact-links { display: flex; justify-content: center; gap: 8px; padding: 8px 12px 2px; }
   .contact-links a {
     display: inline-flex; align-items: center; gap: 5px; text-decoration: none;
@@ -134,7 +136,10 @@
     <div class="header-text">
       <h1 id="companyName">Menú</h1>
       <div class="branch" id="branchName" style="display:none"></div>
-      <div class="lang-picker"><select id="langSelect"></select></div>
+      <div class="lang-picker">
+        <button class="lang-btn" id="langBtn" type="button" aria-label="Elegir idioma">🌐</button>
+        <div class="lang-menu" id="langMenu"></div>
+      </div>
       <div class="contact-links" id="contactLinks" style="display:none"></div>
     </div>
   </div>
@@ -165,6 +170,11 @@
     "fr": "Français",
     "de": "Deutsch",
     "zh": "中文"
+  };
+  // Bandera por idioma, para el menú de selección (icono de mundo).
+  var LANG_FLAGS = {
+    en: "🇬🇧", es: "🇪🇸", it: "🇮🇹", pt: "🇵🇹", da: "🇩🇰",
+    th: "🇹🇭", ru: "🇷🇺", fr: "🇫🇷", de: "🇩🇪", zh: "🇨🇳"
   };
   // Etiquetas de plato: icono + texto por idioma (con fallback a español).
   var TAG_META = {
@@ -278,27 +288,60 @@
     wrap.style.display = 'flex';
   }
 
+  // Antes era un <select> nativo con los nombres en texto — ahora es un
+  // icono de mundo que abre un menú propio con bandera + nombre de cada
+  // idioma, más compacto en la cabecera y más fácil de reconocer de un
+  // vistazo (sobre todo para un cliente extranjero que no lee español).
   function renderLangs() {
-    var select = document.getElementById('langSelect');
-    select.innerHTML = '';
+    var btn = document.getElementById('langBtn');
+    var menu = document.getElementById('langMenu');
+    menu.innerHTML = '';
+
     Object.keys(LANGS).forEach(function (code) {
-      var opt = document.createElement('option');
-      opt.value = code;
-      opt.textContent = LANGS[code];
-      if (code === current) opt.selected = true;
-      select.appendChild(opt);
+      var item = document.createElement('button');
+      item.type = 'button';
+      item.className = code === current ? 'active' : '';
+      var flag = document.createElement('span');
+      flag.className = 'flag';
+      flag.textContent = LANG_FLAGS[code] || '🏳️';
+      var label = document.createElement('span');
+      label.textContent = LANGS[code];
+      item.appendChild(flag);
+      item.appendChild(label);
+      item.onclick = function () {
+        current = code;
+        try { localStorage.setItem('menuLang', current); } catch (e) {}
+        closeLangMenu();
+        // Antes solo se refrescaba renderContent(): los títulos de sección
+        // cambiaban de idioma pero los botones de categoría (barra
+        // superior/lateral) se quedaban con el texto del idioma anterior
+        // porque los pinta una función aparte, renderCategoryNav().
+        renderLangs();
+        renderCategoryNav();
+        renderContent();
+      };
+      menu.appendChild(item);
     });
-    select.onchange = function () {
-      current = select.value;
-      try { localStorage.setItem('menuLang', current); } catch (e) {}
-      // Antes solo se refrescaba renderContent(): los títulos de sección
-      // cambiaban de idioma pero los botones de categoría (barra
-      // superior/lateral) se quedaban con el texto del idioma anterior
-      // porque los pinta una función aparte, renderCategoryNav().
-      renderCategoryNav();
-      renderContent();
+
+    btn.onclick = function (e) {
+      e.stopPropagation();
+      menu.classList.toggle('open');
     };
   }
+
+  function closeLangMenu() {
+    var menu = document.getElementById('langMenu');
+    if (menu) menu.classList.remove('open');
+  }
+
+  // Tocar fuera del menú (o desplazar la página) lo cierra, igual que
+  // cualquier desplegable nativo — sin esto se quedaba abierto encima
+  // del contenido hasta volver a tocar el icono de mundo.
+  document.addEventListener('click', function (e) {
+    var picker = document.querySelector('.lang-picker');
+    if (picker && !picker.contains(e.target)) closeLangMenu();
+  });
+  window.addEventListener('scroll', closeLangMenu, { passive: true });
 
   function renderCategoryNav() {
     var nav = document.getElementById('categories');
