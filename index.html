@@ -57,7 +57,12 @@
   .categories button { flex: 0 0 auto; white-space: nowrap; border: none; background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 12.5px; letter-spacing: 0.02em; text-transform: uppercase; padding: 9px 16px; border-radius: 999px; transition: background 0.15s, color 0.15s; }
   .categories button.active { background: var(--accent); color: #fff; }
 
-  main { padding: 14px 12px 48px; max-width: 900px; margin: 0 auto; flex: 1; min-width: 0; }
+  /* El padding de abajo es grande a propósito: si la última categoría
+     tiene poco contenido, sin este margen la página no puede
+     desplazarse lo suficiente para llevar su título hasta la línea que
+     usa el scroll-spy, y entonces el resaltado se queda pegado en la
+     categoría anterior aunque estés viendo la última. */
+  main { padding: 14px 12px calc(45vh); max-width: 900px; margin: 0 auto; flex: 1; min-width: 0; }
   .category-section { scroll-margin-top: 96px; }
   .category-title { font-size: 15px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); font-weight: 700; margin: 26px 4px 12px; }
   .category-section:first-child .category-title { margin-top: 4px; }
@@ -354,6 +359,19 @@
       btn.dataset.category = cat;
       if (cat === selectedCategory) btn.className = 'active';
       btn.onclick = function () {
+        // Antes esto solo hacía scroll y esperaba a que el listener de
+        // scroll (updateActiveFromScroll) detectara sola la sección
+        // activa — pero si la categoría es la última de la carta y le
+        // sobra poco contenido debajo, la página nunca puede desplazarse
+        // lo suficiente para que su título cruce la línea de referencia,
+        // así que el scroll-spy se quedaba pensando que seguías en la
+        // categoría anterior (ej. tocabas "Carnes" y resaltaba "Arroz").
+        // Ahora se marca activa AL TOCAR, sin depender de dónde termine
+        // el scroll, y se ignoran los eventos de scroll durante la
+        // animación para que no se pise con el resaltado automático.
+        selectedCategory = cat;
+        highlightActiveCategory();
+        suppressScrollSpyUntil = Date.now() + 700;
         var section = document.getElementById(slugify(cat));
         if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
       };
@@ -718,7 +736,9 @@
   }
 
   var scrollTicking = false;
+  var suppressScrollSpyUntil = 0;
   function updateActiveFromScroll() {
+    if (Date.now() < suppressScrollSpyUntil) return;
     var refY = window.innerWidth >= 860 ? 100 : 130;
     var sections = document.querySelectorAll('.category-section');
     var current = null;
