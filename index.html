@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Menú</title>
 <style>
   :root {
@@ -12,10 +12,25 @@
     --bg: #f6f2ec;
     --card-bg: #ffffff;
     --text: #2b2320;
-    --muted: #8a8078;
+    /* Antes #8a8078 daba un contraste de ~3.9:1 sobre fondo blanco — no
+       llega al mínimo de 4.5:1 que pide WCAG AA para texto normal, y en
+       esta carta el gris "muted" se usa en textos pequeños (descripción,
+       alérgenos). Este tono más oscuro pasa el mínimo sin cambiar
+       demasiado el aspecto general. */
+    --muted: #6b6259;
   }
   * { box-sizing: border-box; }
   body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); }
+
+  /* Accesibilidad: quien navega con teclado (o con un lector de
+     pantalla que también usa el foco) necesita ver claramente dónde
+     está — sin esto, tarjetas, botones e iconos no mostraban ningún
+     borde al recibir el foco. :focus-visible evita que aparezca el
+     contorno al tocar con el dedo/ratón, solo con teclado. */
+  a:focus-visible, button:focus-visible, .card:focus-visible, img[role="button"]:focus-visible {
+    outline: 3px solid #2b7de9;
+    outline-offset: 2px;
+  }
 
   /* Antes el logo iba apilado ENCIMA del título (columna centrada), lo
      que hacía la cabecera muy alta — sobre todo en pantallas anchas
@@ -148,17 +163,17 @@
   </div>
 </header>
 <div class="layout">
-  <nav class="categories" id="categories"></nav>
+  <nav class="categories" id="categories" aria-label="Categorías del menú"></nav>
   <main id="main"><div class="loading">Cargando menú…</div></main>
 </div>
 <div class="lang-picker">
-  <button class="lang-btn" id="langBtn" type="button" aria-label="Elegir idioma">🌐</button>
-  <div class="lang-menu" id="langMenu"></div>
+  <button class="lang-btn" id="langBtn" type="button" aria-label="Elegir idioma" aria-haspopup="true" aria-expanded="false">🌐</button>
+  <div class="lang-menu" id="langMenu" role="menu"></div>
 </div>
 <div class="modal-overlay" id="modalOverlay">
-  <div class="modal-sheet" id="modalSheet"></div>
+  <div class="modal-sheet" id="modalSheet" role="dialog" aria-modal="true" aria-label="Ficha del plato" tabindex="-1"></div>
 </div>
-<div class="lightbox" id="lightbox">
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Foto ampliada">
   <button class="lightbox-close" id="lightboxClose" aria-label="Cerrar">✕</button>
   <img id="lightboxImg" src="" alt="">
 </div>
@@ -229,6 +244,11 @@
   try { stored = localStorage.getItem('menuLang'); } catch (e) {}
   var current = stored && LANGS[stored] ? stored : (navigator.language || 'en').slice(0, 2);
   if (!LANGS[current]) current = 'en';
+  // Para que un lector de pantalla pronuncie el contenido en el idioma
+  // correcto (y no siempre en español, que es lo que decía el <html>
+  // por defecto) — se vuelve a actualizar cada vez que se cambia de
+  // idioma desde el menú de banderas.
+  document.documentElement.lang = current;
 
   function fieldFor(item, prefix) {
     var v = item[prefix + '_' + current];
@@ -307,9 +327,12 @@
     Object.keys(LANGS).forEach(function (code) {
       var item = document.createElement('button');
       item.type = 'button';
+      item.setAttribute('role', 'menuitem');
       item.className = code === current ? 'active' : '';
+      if (code === current) item.setAttribute('aria-current', 'true');
       var flag = document.createElement('span');
       flag.className = 'flag';
+      flag.setAttribute('aria-hidden', 'true');
       flag.textContent = LANG_FLAGS[code] || '🏳️';
       var label = document.createElement('span');
       label.textContent = LANGS[code];
@@ -318,6 +341,7 @@
       item.onclick = function () {
         current = code;
         try { localStorage.setItem('menuLang', current); } catch (e) {}
+        document.documentElement.lang = current;
         closeLangMenu();
         // Antes solo se refrescaba renderContent(): los títulos de sección
         // cambiaban de idioma pero los botones de categoría (barra
@@ -332,13 +356,21 @@
 
     btn.onclick = function (e) {
       e.stopPropagation();
+      var willOpen = !menu.classList.contains('open');
       menu.classList.toggle('open');
+      btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+      if (willOpen) {
+        var firstItem = menu.querySelector('button');
+        if (firstItem) firstItem.focus();
+      }
     };
   }
 
   function closeLangMenu() {
     var menu = document.getElementById('langMenu');
+    var btn = document.getElementById('langBtn');
     if (menu) menu.classList.remove('open');
+    if (btn) btn.setAttribute('aria-expanded', 'false');
   }
 
   // Tocar fuera del menú (o desplazar la página) lo cierra, igual que
@@ -355,9 +387,10 @@
     nav.innerHTML = '';
     CATEGORY_ORDER.forEach(function (cat) {
       var btn = document.createElement('button');
+      btn.type = 'button';
       btn.textContent = categoryLabel(cat);
       btn.dataset.category = cat;
-      if (cat === selectedCategory) btn.className = 'active';
+      if (cat === selectedCategory) { btn.className = 'active'; btn.setAttribute('aria-current', 'true'); }
       btn.onclick = function () {
         // Antes esto solo hacía scroll y esperaba a que el listener de
         // scroll (updateActiveFromScroll) detectara sola la sección
@@ -384,12 +417,14 @@
     buttons.forEach(function (btn) {
       if (btn.dataset.category === selectedCategory) {
         btn.classList.add('active');
+        btn.setAttribute('aria-current', 'true');
         // Mantiene el botón activo visible dentro de la barra scrollable en móvil.
         if (window.innerWidth < 860 && btn.scrollIntoView) {
           btn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
         }
       } else {
         btn.classList.remove('active');
+        btn.removeAttribute('aria-current');
       }
     });
   }
@@ -412,7 +447,7 @@
         var img = document.createElement('img');
         img.src = src;
         img.loading = 'lazy';
-        img.alt = '';
+        img.alt = fieldFor(item, 'name') || '';
         scroller.appendChild(img);
       });
       carousel.appendChild(scroller);
@@ -439,11 +474,12 @@
       img.className = 'thumb';
       img.src = images[0];
       img.loading = 'lazy';
-      img.alt = '';
+      img.alt = fieldFor(item, 'name') || '';
       card.appendChild(img);
     } else {
       var ph = document.createElement('div');
       ph.className = 'thumb-placeholder';
+      ph.setAttribute('aria-hidden', 'true');
       ph.textContent = (fieldFor(item, 'name') || '?').charAt(0).toUpperCase();
       card.appendChild(ph);
     }
@@ -505,6 +541,19 @@
     // porque un arrastre real para deslizar entre fotos no dispara
     // "click" en los navegadores (solo un toque suelto lo hace).
     card.addEventListener('click', function () { openDetail(item); });
+    // Accesibilidad: la tarjeta es un <div>, así que sin esto quedaba
+    // invisible para quien navega con teclado o lector de pantalla (no
+    // se podía llegar a ella con Tab ni activarla sin un ratón/dedo).
+    card.tabIndex = 0;
+    card.setAttribute('role', 'button');
+    var priceLabel = (item.price !== null && item.price !== undefined) ? ', ' + Number(item.price).toFixed(2).replace('.', ',') + ' euros' : '';
+    card.setAttribute('aria-label', 'Ver ficha de ' + (fieldFor(item, 'name') || 'plato') + priceLabel);
+    card.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        openDetail(item);
+      }
+    });
     return card;
   }
 
@@ -531,10 +580,20 @@
         var img = document.createElement('img');
         img.src = src;
         img.loading = 'lazy';
-        img.alt = '';
+        img.alt = fieldFor(item, 'name') || '';
+        img.setAttribute('role', 'button');
+        img.tabIndex = 0;
+        img.setAttribute('aria-label', 'Ampliar foto de ' + (fieldFor(item, 'name') || 'el plato'));
         img.addEventListener('click', function (e) {
           e.stopPropagation();
-          openLightbox(src);
+          openLightbox(src, fieldFor(item, 'name'));
+        });
+        img.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            e.stopPropagation();
+            openLightbox(src, fieldFor(item, 'name'));
+          }
         });
         scroller.appendChild(img);
       });
@@ -559,6 +618,7 @@
     } else {
       var ph = document.createElement('div');
       ph.className = 'modal-placeholder';
+      ph.setAttribute('aria-hidden', 'true');
       ph.textContent = (fieldFor(item, 'name') || '?').charAt(0).toUpperCase();
       sheet.appendChild(ph);
     }
@@ -615,35 +675,56 @@
     }
 
     sheet.appendChild(body);
+    sheet.setAttribute('aria-label', fieldFor(item, 'name') || 'Ficha del plato');
 
+    // Accesibilidad: guarda qué elemento tenía el foco (la tarjeta que
+    // se tocó) para devolvérselo al cerrar, y mueve el foco dentro de la
+    // ficha al abrirla — si no, un lector de pantalla o quien navega con
+    // teclado se queda "perdido" sobre un fondo oscurecido sin saber que
+    // se abrió algo nuevo.
+    lastFocusedBeforeModal = document.activeElement;
     document.getElementById('modalOverlay').classList.add('open');
     document.body.classList.add('modal-open');
+    closeBtn.focus();
   }
 
+  var lastFocusedBeforeModal = null;
   function closeDetail() {
     document.getElementById('modalOverlay').classList.remove('open');
     document.body.classList.remove('modal-open');
+    if (lastFocusedBeforeModal && lastFocusedBeforeModal.focus) lastFocusedBeforeModal.focus();
   }
 
   document.getElementById('modalOverlay').addEventListener('click', function (e) {
     if (e.target.id === 'modalOverlay') closeDetail();
   });
 
-  // Zoom real de la foto (pellizcar con los dedos): el <meta viewport>
-  // general trae maximum-scale=1 para que el menú no se desalinee si
-  // alguien toca sin querer la pantalla, pero eso también bloquea el
-  // pellizco para ampliar. Al abrir la foto a pantalla completa se afloja
-  // ese límite solo mientras está abierta, y se restaura al cerrarla.
-  var viewportMeta = document.querySelector('meta[name="viewport"]');
-  var originalViewportContent = viewportMeta ? viewportMeta.getAttribute('content') : '';
-  function openLightbox(src) {
-    document.getElementById('lightboxImg').src = src;
+  // Tecla Escape cierra lo que esté abierto — la foto ampliada primero
+  // (si está encima de todo), luego la ficha, luego el menú de idioma.
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    if (document.getElementById('lightbox').classList.contains('open')) { closeLightbox(); return; }
+    if (document.getElementById('modalOverlay').classList.contains('open')) { closeDetail(); return; }
+    closeLangMenu();
+  });
+
+  // Zoom real de la foto (pellizcar con los dedos): la página entera ya
+  // permite pellizcar para ampliar (accesibilidad — antes lo bloqueaba
+  // un maximum-scale=1 en el <meta viewport>), así que aquí solo hace
+  // falta mostrar la foto a pantalla completa; el zoom en sí lo da el
+  // propio navegador.
+  var lastFocusedBeforeLightbox = null;
+  function openLightbox(src, altText) {
+    var img = document.getElementById('lightboxImg');
+    img.src = src;
+    img.alt = altText || '';
+    lastFocusedBeforeLightbox = document.activeElement;
     document.getElementById('lightbox').classList.add('open');
-    if (viewportMeta) viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1, maximum-scale=4');
+    document.getElementById('lightboxClose').focus();
   }
   function closeLightbox() {
     document.getElementById('lightbox').classList.remove('open');
-    if (viewportMeta) viewportMeta.setAttribute('content', originalViewportContent);
+    if (lastFocusedBeforeLightbox && lastFocusedBeforeLightbox.focus) lastFocusedBeforeLightbox.focus();
   }
   document.getElementById('lightboxClose').addEventListener('click', function (e) {
     e.stopPropagation();
@@ -792,6 +873,7 @@
         var logoImg = document.getElementById('logoImg');
         if (data.logo_url) {
           logoImg.src = data.logo_url;
+          logoImg.alt = 'Logo de ' + displayName;
           logoImg.style.display = 'block';
         } else {
           logoImg.style.display = 'none';
