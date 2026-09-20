@@ -157,16 +157,23 @@
   .rate-title { font-size: 18px; font-weight: 700; margin: 4px 30px 4px 0; }
   .rate-subtitle { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
 
-  .rate-staff-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px 10px; }
+  .rate-staff-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px 10px; }
   .rate-staff-item { display: flex; flex-direction: column; align-items: center; gap: 6px; border: none; background: none; padding: 4px; }
-  .rate-staff-photo-wrap { width: 76px; height: 76px; border-radius: 50%; background: linear-gradient(160deg, var(--accent), var(--accent-soft)); display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 14px rgba(0,0,0,0.18); overflow: hidden; }
-  .rate-staff-photo-wrap img { width: 100%; height: 100%; object-fit: contain; }
+  /* Foto tipo "avatar recortado": la sube el propio dueño ya sin fondo
+     (PNG transparente), así que aquí no se le pone ni círculo ni fondo de
+     color detrás — se deja flotar tal cual, con una sombra suave para que
+     se despegue de la página. Solo cuando NO hay foto se cae a un círculo
+     con la inicial, que sí necesita su propio fondo para verse. */
+  .rate-staff-avatar { width: 100%; height: 100px; display: flex; align-items: flex-end; justify-content: center; }
+  .rate-staff-avatar img { max-width: 100%; max-height: 100%; object-fit: contain; filter: drop-shadow(0 6px 10px rgba(0,0,0,0.22)); }
+  .rate-staff-avatar-fallback { width: 76px; height: 76px; border-radius: 50%; background: linear-gradient(160deg, var(--accent), var(--accent-soft)); display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 14px rgba(0,0,0,0.18); }
   .rate-staff-initial { color: #fff; font-size: 26px; font-weight: 700; }
   .rate-staff-name { font-size: 11.5px; font-weight: 600; text-align: center; line-height: 1.25; }
 
   .rate-selected { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; margin-bottom: 18px; }
-  .rate-selected-photo-wrap { width: 96px; height: 96px; border-radius: 50%; background: linear-gradient(160deg, var(--accent), var(--accent-soft)); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(0,0,0,0.22); overflow: hidden; }
-  .rate-selected-photo-wrap img { width: 100%; height: 100%; object-fit: contain; }
+  .rate-selected-avatar { width: 100%; max-width: 200px; height: 150px; display: flex; align-items: flex-end; justify-content: center; }
+  .rate-selected-avatar img { max-width: 100%; max-height: 100%; object-fit: contain; filter: drop-shadow(0 8px 14px rgba(0,0,0,0.25)); }
+  .rate-selected-avatar-fallback { width: 104px; height: 104px; border-radius: 50%; background: linear-gradient(160deg, var(--accent), var(--accent-soft)); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(0,0,0,0.22); }
   .rate-selected-initial { color: #fff; font-size: 32px; font-weight: 700; }
   .rate-selected-name { font-size: 16px; font-weight: 700; }
 
@@ -181,6 +188,9 @@
   .rate-thanks { text-align: center; padding: 30px 10px 10px; }
   .rate-thanks-icon { font-size: 44px; }
   .rate-thanks-text { margin-top: 10px; font-size: 15px; font-weight: 600; }
+  .rate-review-sub { margin-top: 8px; font-size: 13.5px; color: var(--muted); line-height: 1.4; }
+  .rate-review-cta { display: block; width: 100%; margin-top: 18px; height: 46px; line-height: 46px; border: none; border-radius: 12px; background: var(--accent); color: #fff; font-size: 15px; font-weight: 700; text-align: center; text-decoration: none; }
+  .rate-review-skip { display: block; width: 100%; margin-top: 10px; background: none; border: none; color: var(--muted); font-size: 13px; padding: 8px; text-align: center; }
 
   .allergen-legend { margin: 32px 4px 0; padding: 14px; background: var(--card-bg); border-radius: 12px; font-size: 11px; color: var(--muted); line-height: 1.6; }
   .allergen-legend strong { display: block; color: var(--text); font-size: 12px; margin-bottom: 6px; }
@@ -302,6 +312,10 @@
     sending:   { es: 'Enviando…', en: 'Sending…', it: 'Invio…', pt: 'Enviando…', fr: 'Envoi…', de: 'Senden…' },
     error:     { es: 'No se pudo enviar. Inténtalo de nuevo.', en: "Couldn't send it. Please try again.", it: 'Invio non riuscito. Riprova.', pt: 'Não foi possível enviar. Tente novamente.', fr: "Échec de l'envoi. Réessayez.", de: 'Senden fehlgeschlagen. Bitte erneut versuchen.' },
     thanks:    { es: '¡Gracias por tu valoración!', en: 'Thanks for your rating!', it: 'Grazie per la tua valutazione!', pt: 'Obrigado pela sua avaliação!', fr: 'Merci pour votre avis !', de: 'Danke für deine Bewertung!' },
+    reviewTitle: { es: '¡Nos alegra mucho! 🎉', en: "We're thrilled! 🎉", it: 'Che gioia! 🎉', pt: 'Que alegria! 🎉', fr: 'Quel plaisir ! 🎉', de: 'Das freut uns sehr! 🎉' },
+    reviewSub:   { es: '¿Nos dejarías también una reseña en Google? Nos ayuda muchísimo.', en: 'Would you also leave us a Google review? It helps us a lot.', it: 'Ci lasceresti anche una recensione su Google? Ci aiuta molto.', pt: 'Deixaria também uma avaliação no Google? Ajuda-nos muito.', fr: 'Laisseriez-vous aussi un avis sur Google ? Cela nous aide beaucoup.', de: 'Würdest du uns auch bei Google bewerten? Das hilft uns sehr.' },
+    reviewCta:   { es: 'Escribir reseña en Google', en: 'Write a Google review', it: 'Scrivi una recensione su Google', pt: 'Escrever avaliação no Google', fr: 'Écrire un avis sur Google', de: 'Google-Bewertung schreiben' },
+    reviewSkip:  { es: 'Ahora no', en: 'Not now', it: 'Non ora', pt: 'Agora não', fr: 'Pas maintenant', de: 'Nicht jetzt' },
   };
   function rateLabel(key) {
     var entry = RATE_LABELS[key];
@@ -309,6 +323,10 @@
     return entry[current] || entry.es;
   }
   var STAFF = [];
+  // Enlace de "pedir reseña" de Google de esta sucursal (lo pega el dueño
+  // en Valery, ver CompanyBranch.google_review_url) — si existe, a quien
+  // valore con 5 estrellas se le invita también a dejar reseña pública.
+  var GOOGLE_REVIEW_URL = null;
   var selectedStaff = null;
   var selectedStars = 0;
 
@@ -817,18 +835,21 @@
     return (name || '?').trim().charAt(0).toUpperCase();
   }
 
-  function staffPhotoNode(person, sizeClass) {
+  function staffPhotoNode(person, variant) {
+    // variant: 'staff' (foto pequeña, rejilla de selección) o 'selected'
+    // (foto grande, pantalla de poner las estrellas).
     var wrap = document.createElement('div');
-    wrap.className = sizeClass;
     if (person.photo_url) {
+      wrap.className = variant === 'selected' ? 'rate-selected-avatar' : 'rate-staff-avatar';
       var img = document.createElement('img');
       img.src = person.photo_url;
       img.alt = person.name || '';
       img.loading = 'lazy';
       wrap.appendChild(img);
     } else {
+      wrap.className = variant === 'selected' ? 'rate-selected-avatar-fallback' : 'rate-staff-avatar-fallback';
       var initial = document.createElement('span');
-      initial.className = sizeClass === 'rate-selected-photo-wrap' ? 'rate-selected-initial' : 'rate-staff-initial';
+      initial.className = variant === 'selected' ? 'rate-selected-initial' : 'rate-staff-initial';
       initial.textContent = initialOf(person.name);
       wrap.appendChild(initial);
     }
@@ -888,11 +909,13 @@
       var item = document.createElement('button');
       item.type = 'button';
       item.className = 'rate-staff-item';
-      item.appendChild(staffPhotoNode(person, 'rate-staff-photo-wrap'));
-      var name = document.createElement('span');
-      name.className = 'rate-staff-name';
-      name.textContent = person.name || '';
-      item.appendChild(name);
+      item.appendChild(staffPhotoNode(person, 'staff'));
+      if (person.show_name !== false) {
+        var name = document.createElement('span');
+        name.className = 'rate-staff-name';
+        name.textContent = person.name || '';
+        item.appendChild(name);
+      }
       item.onclick = function () { openRatingSheet(person); };
       grid.appendChild(item);
     });
@@ -917,11 +940,13 @@
 
     var selected = document.createElement('div');
     selected.className = 'rate-selected';
-    selected.appendChild(staffPhotoNode(person, 'rate-selected-photo-wrap'));
-    var name = document.createElement('div');
-    name.className = 'rate-selected-name';
-    name.textContent = person.name || '';
-    selected.appendChild(name);
+    selected.appendChild(staffPhotoNode(person, 'selected'));
+    if (person.show_name !== false) {
+      var name = document.createElement('div');
+      name.className = 'rate-selected-name';
+      name.textContent = person.name || '';
+      selected.appendChild(name);
+    }
     var sub = document.createElement('div');
     sub.className = 'rate-subtitle';
     sub.style.marginBottom = '0';
@@ -987,7 +1012,11 @@
         .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
         .then(function (result) {
           if (!result.ok || result.data.error) throw new Error(result.data.error || 'error');
-          showThanks();
+          if (selectedStars === 5 && GOOGLE_REVIEW_URL) {
+            showGoogleReviewPrompt();
+          } else {
+            showThanks();
+          }
         })
         .catch(function () {
           submitBtn.disabled = false;
@@ -1024,6 +1053,56 @@
     sheet.appendChild(box);
 
     setTimeout(closeRateOverlay, 1800);
+  }
+
+  // Cuando la valoración es de 5 estrellas y la sucursal tiene configurado
+  // un enlace de reseñas de Google (ver GOOGLE_REVIEW_URL), en vez del
+  // agradecimiento normal se muestra esta pantalla invitando a dejar
+  // también una reseña pública — no se cierra sola, para no cortar al
+  // usuario mientras decide si pulsar el enlace.
+  function showGoogleReviewPrompt() {
+    var sheet = document.getElementById('rateSheet');
+    sheet.innerHTML = '';
+    var closeBtn = document.createElement('button');
+    closeBtn.className = 'rate-close';
+    closeBtn.textContent = '✕';
+    closeBtn.setAttribute('aria-label', 'Cerrar');
+    closeBtn.onclick = closeRateOverlay;
+    sheet.appendChild(closeBtn);
+
+    var box = document.createElement('div');
+    box.className = 'rate-thanks';
+    var icon = document.createElement('div');
+    icon.className = 'rate-thanks-icon';
+    icon.textContent = '🎉';
+    box.appendChild(icon);
+    var text = document.createElement('div');
+    text.className = 'rate-thanks-text';
+    text.textContent = rateLabel('reviewTitle');
+    box.appendChild(text);
+    var sub = document.createElement('div');
+    sub.className = 'rate-review-sub';
+    sub.textContent = rateLabel('reviewSub');
+    box.appendChild(sub);
+
+    var cta = document.createElement('a');
+    cta.className = 'rate-review-cta';
+    cta.href = GOOGLE_REVIEW_URL;
+    cta.target = '_blank';
+    cta.rel = 'noopener noreferrer';
+    cta.textContent = rateLabel('reviewCta');
+    cta.onclick = function () { setTimeout(closeRateOverlay, 300); };
+    box.appendChild(cta);
+
+    var skip = document.createElement('button');
+    skip.type = 'button';
+    skip.className = 'rate-review-skip';
+    skip.textContent = rateLabel('reviewSkip');
+    skip.onclick = closeRateOverlay;
+    box.appendChild(skip);
+
+    sheet.appendChild(box);
+    closeBtn.focus();
   }
 
   // Todas las categorías se pintan seguidas, una tras otra, en una sola
@@ -1192,6 +1271,7 @@
         selectedCategory = CATEGORY_ORDER[0] || null;
 
         STAFF = Array.isArray(data.staff) ? data.staff.filter(function (p) { return p && p.id && p.name; }) : [];
+        GOOGLE_REVIEW_URL = data.google_review_url || null;
 
         renderLangs();
         renderCategoryNav();
