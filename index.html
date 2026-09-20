@@ -136,6 +136,52 @@
   .lightbox img { max-width: 100%; max-height: 100%; }
   .lightbox-close { position: absolute; top: 14px; right: 14px; width: 36px; height: 36px; border-radius: 50%; border: none; background: rgba(255,255,255,0.18); color: #fff; font-size: 17px; }
 
+  /* "Valóranos": botón flotante abajo a la izquierda (el de idioma ya
+     ocupa la derecha) que abre la selección de camarero/a + estrellas.
+     La foto de cada empleado llega YA recortada sin fondo (PNG con
+     alfa, ver EmployeesView.removeBackground en la app) — por eso basta
+     con ponerla sobre un círculo de color de marca con sombra para que
+     se vea "flotando" en vez de pegada a un fondo cuadrado. */
+  .rate-fab { position: fixed; left: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 40; }
+  .rate-fab-btn { display: flex; align-items: center; gap: 6px; height: 48px; padding: 0 16px 0 14px; border-radius: 999px; border: none; background: var(--accent); color: #fff; font-size: 13px; font-weight: 700; box-shadow: 0 6px 16px rgba(0,0,0,0.28); }
+
+  .rate-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; display: flex; align-items: flex-end; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+  .rate-overlay.open { opacity: 1; pointer-events: auto; }
+  .rate-sheet { background: var(--card-bg); width: 100%; max-width: 480px; max-height: 88vh; border-radius: 18px 18px 0 0; overflow-y: auto; -webkit-overflow-scrolling: touch; position: relative; padding: 22px 20px calc(28px + env(safe-area-inset-bottom, 0px)); transform: translateY(24px); transition: transform 0.2s; }
+  .rate-overlay.open .rate-sheet { transform: translateY(0); }
+  @media (min-width: 860px) {
+    .rate-overlay { align-items: center; }
+    .rate-sheet { border-radius: 18px; max-height: 84vh; }
+  }
+  .rate-close { position: absolute; top: 10px; right: 10px; width: 32px; height: 32px; border-radius: 50%; border: none; background: rgba(0,0,0,0.08); color: var(--text); font-size: 15px; line-height: 1; display: flex; align-items: center; justify-content: center; }
+  .rate-title { font-size: 18px; font-weight: 700; margin: 4px 30px 4px 0; }
+  .rate-subtitle { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
+
+  .rate-staff-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px 10px; }
+  .rate-staff-item { display: flex; flex-direction: column; align-items: center; gap: 6px; border: none; background: none; padding: 4px; }
+  .rate-staff-photo-wrap { width: 76px; height: 76px; border-radius: 50%; background: linear-gradient(160deg, var(--accent), var(--accent-soft)); display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 14px rgba(0,0,0,0.18); overflow: hidden; }
+  .rate-staff-photo-wrap img { width: 100%; height: 100%; object-fit: contain; }
+  .rate-staff-initial { color: #fff; font-size: 26px; font-weight: 700; }
+  .rate-staff-name { font-size: 11.5px; font-weight: 600; text-align: center; line-height: 1.25; }
+
+  .rate-selected { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; margin-bottom: 18px; }
+  .rate-selected-photo-wrap { width: 96px; height: 96px; border-radius: 50%; background: linear-gradient(160deg, var(--accent), var(--accent-soft)); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(0,0,0,0.22); overflow: hidden; }
+  .rate-selected-photo-wrap img { width: 100%; height: 100%; object-fit: contain; }
+  .rate-selected-initial { color: #fff; font-size: 32px; font-weight: 700; }
+  .rate-selected-name { font-size: 16px; font-weight: 700; }
+
+  .rate-stars { display: flex; justify-content: center; gap: 8px; margin: 6px 0 18px; }
+  .rate-star-btn { border: none; background: none; font-size: 34px; line-height: 1; color: #e0d9cf; padding: 4px; }
+  .rate-star-btn.filled { color: #f5a623; }
+
+  .rate-comment { width: 100%; min-height: 70px; border: 1px solid #e6ddd0; border-radius: 12px; padding: 10px 12px; font-size: 14px; font-family: inherit; color: var(--text); resize: vertical; background: var(--bg); }
+  .rate-submit { width: 100%; margin-top: 14px; height: 46px; border: none; border-radius: 12px; background: var(--accent); color: #fff; font-size: 15px; font-weight: 700; }
+  .rate-submit:disabled { opacity: 0.6; }
+  .rate-error { color: #c0392b; font-size: 12.5px; margin-top: 8px; text-align: center; }
+  .rate-thanks { text-align: center; padding: 30px 10px 10px; }
+  .rate-thanks-icon { font-size: 44px; }
+  .rate-thanks-text { margin-top: 10px; font-size: 15px; font-weight: 600; }
+
   .allergen-legend { margin: 32px 4px 0; padding: 14px; background: var(--card-bg); border-radius: 12px; font-size: 11px; color: var(--muted); line-height: 1.6; }
   .allergen-legend strong { display: block; color: var(--text); font-size: 12px; margin-bottom: 6px; }
   .allergen-legend .legend-items { display: flex; flex-wrap: wrap; gap: 6px 12px; }
@@ -176,6 +222,12 @@
 <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Foto ampliada">
   <button class="lightbox-close" id="lightboxClose" aria-label="Cerrar">✕</button>
   <img id="lightboxImg" src="" alt="">
+</div>
+<div class="rate-fab" id="rateFab" style="display:none">
+  <button class="rate-fab-btn" id="rateFabBtn" type="button">⭐ <span id="rateFabLabel">Valóranos</span></button>
+</div>
+<div class="rate-overlay" id="rateOverlay">
+  <div class="rate-sheet" id="rateSheet" role="dialog" aria-modal="true" aria-label="Valóranos" tabindex="-1"></div>
 </div>
 <script>
   var SUPABASE_URL = 'https://losbulvhmemptrdjygpu.supabase.co';
@@ -235,6 +287,30 @@
   var ITEMS = [];
   var CATEGORY_ORDER = [];
   var selectedCategory = null;
+
+  // "Valóranos": el cliente elige a quién le atendió y deja 1-5
+  // estrellas + comentario opcional (ver submit-employee-rating). Solo
+  // se traduce a un puñado de idiomas (como BESTSELLER_LABELS arriba) —
+  // el resto cae a español, que es aceptable para un texto tan corto.
+  var RATE_LABELS = {
+    fabLabel:  { es: 'Valóranos', en: 'Rate us', it: 'Valutaci', pt: 'Avalie-nos', fr: 'Notez-nous', de: 'Bewerten' },
+    pickTitle: { es: '¿Quién te atendió?', en: 'Who served you?', it: 'Chi ti ha servito?', pt: 'Quem te atendeu?', fr: 'Qui vous a servi ?', de: 'Wer hat bedient?' },
+    pickSub:   { es: 'Elige a tu camarero/a para valorarle', en: 'Choose who served you to rate them', it: 'Scegli chi ti ha servito per valutarlo', pt: 'Escolha quem te atendeu para avaliar', fr: 'Choisissez qui vous a servi pour le noter', de: 'Wähle, wer dich bedient hat' },
+    rateSub:   { es: '¿Cómo lo hizo?', en: 'How did they do?', it: "Com'è andata?", pt: 'Como foi o atendimento?', fr: "Comment était le service ?", de: 'Wie war der Service?' },
+    commentPh: { es: 'Cuéntanos más (opcional)', en: 'Tell us more (optional)', it: 'Raccontaci di più (facoltativo)', pt: 'Conte-nos mais (opcional)', fr: 'Dites-nous en plus (facultatif)', de: 'Erzähl uns mehr (optional)' },
+    submit:    { es: 'Enviar valoración', en: 'Submit rating', it: 'Invia valutazione', pt: 'Enviar avaliação', fr: 'Envoyer la note', de: 'Bewertung senden' },
+    sending:   { es: 'Enviando…', en: 'Sending…', it: 'Invio…', pt: 'Enviando…', fr: 'Envoi…', de: 'Senden…' },
+    error:     { es: 'No se pudo enviar. Inténtalo de nuevo.', en: "Couldn't send it. Please try again.", it: 'Invio non riuscito. Riprova.', pt: 'Não foi possível enviar. Tente novamente.', fr: "Échec de l'envoi. Réessayez.", de: 'Senden fehlgeschlagen. Bitte erneut versuchen.' },
+    thanks:    { es: '¡Gracias por tu valoración!', en: 'Thanks for your rating!', it: 'Grazie per la tua valutazione!', pt: 'Obrigado pela sua avaliação!', fr: 'Merci pour votre avis !', de: 'Danke für deine Bewertung!' },
+  };
+  function rateLabel(key) {
+    var entry = RATE_LABELS[key];
+    if (!entry) return '';
+    return entry[current] || entry.es;
+  }
+  var STAFF = [];
+  var selectedStaff = null;
+  var selectedStars = 0;
 
   var params = new URLSearchParams(location.search);
   var companyId = params.get('company_id');
@@ -350,6 +426,7 @@
         renderLangs();
         renderCategoryNav();
         renderContent();
+        renderRateFab();
       };
       menu.appendChild(item);
     });
@@ -705,6 +782,7 @@
     if (e.key !== 'Escape') return;
     if (document.getElementById('lightbox').classList.contains('open')) { closeLightbox(); return; }
     if (document.getElementById('modalOverlay').classList.contains('open')) { closeDetail(); return; }
+    if (document.getElementById('rateOverlay').classList.contains('open')) { closeRateOverlay(); return; }
     closeLangMenu();
   });
 
@@ -733,6 +811,220 @@
   document.getElementById('lightbox').addEventListener('click', function (e) {
     if (e.target.id === 'lightbox') closeLightbox();
   });
+
+  // MARK: - "Valóranos" (valorar al camarero/a que atendió)
+  function initialOf(name) {
+    return (name || '?').trim().charAt(0).toUpperCase();
+  }
+
+  function staffPhotoNode(person, sizeClass) {
+    var wrap = document.createElement('div');
+    wrap.className = sizeClass;
+    if (person.photo_url) {
+      var img = document.createElement('img');
+      img.src = person.photo_url;
+      img.alt = person.name || '';
+      img.loading = 'lazy';
+      wrap.appendChild(img);
+    } else {
+      var initial = document.createElement('span');
+      initial.className = sizeClass === 'rate-selected-photo-wrap' ? 'rate-selected-initial' : 'rate-staff-initial';
+      initial.textContent = initialOf(person.name);
+      wrap.appendChild(initial);
+    }
+    return wrap;
+  }
+
+  function renderRateFab() {
+    var fab = document.getElementById('rateFab');
+    document.getElementById('rateFabLabel').textContent = rateLabel('fabLabel');
+    fab.style.display = STAFF.length ? '' : 'none';
+  }
+
+  document.getElementById('rateFabBtn').addEventListener('click', openStaffPicker);
+
+  function openRateOverlay() {
+    lastFocusedBeforeRate = document.activeElement;
+    document.getElementById('rateOverlay').classList.add('open');
+    document.body.classList.add('modal-open');
+  }
+  function closeRateOverlay() {
+    document.getElementById('rateOverlay').classList.remove('open');
+    document.body.classList.remove('modal-open');
+    if (lastFocusedBeforeRate && lastFocusedBeforeRate.focus) lastFocusedBeforeRate.focus();
+  }
+  var lastFocusedBeforeRate = null;
+
+  document.getElementById('rateOverlay').addEventListener('click', function (e) {
+    if (e.target.id === 'rateOverlay') closeRateOverlay();
+  });
+
+  function openStaffPicker() {
+    selectedStaff = null;
+    selectedStars = 0;
+    var sheet = document.getElementById('rateSheet');
+    sheet.innerHTML = '';
+
+    var closeBtn = document.createElement('button');
+    closeBtn.className = 'rate-close';
+    closeBtn.textContent = '✕';
+    closeBtn.setAttribute('aria-label', 'Cerrar');
+    closeBtn.onclick = closeRateOverlay;
+    sheet.appendChild(closeBtn);
+
+    var title = document.createElement('div');
+    title.className = 'rate-title';
+    title.textContent = rateLabel('pickTitle');
+    sheet.appendChild(title);
+
+    var sub = document.createElement('div');
+    sub.className = 'rate-subtitle';
+    sub.textContent = rateLabel('pickSub');
+    sheet.appendChild(sub);
+
+    var grid = document.createElement('div');
+    grid.className = 'rate-staff-grid';
+    STAFF.forEach(function (person) {
+      var item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'rate-staff-item';
+      item.appendChild(staffPhotoNode(person, 'rate-staff-photo-wrap'));
+      var name = document.createElement('span');
+      name.className = 'rate-staff-name';
+      name.textContent = person.name || '';
+      item.appendChild(name);
+      item.onclick = function () { openRatingSheet(person); };
+      grid.appendChild(item);
+    });
+    sheet.appendChild(grid);
+
+    openRateOverlay();
+    closeBtn.focus();
+  }
+
+  function openRatingSheet(person) {
+    selectedStaff = person;
+    selectedStars = 0;
+    var sheet = document.getElementById('rateSheet');
+    sheet.innerHTML = '';
+
+    var closeBtn = document.createElement('button');
+    closeBtn.className = 'rate-close';
+    closeBtn.textContent = '✕';
+    closeBtn.setAttribute('aria-label', 'Cerrar');
+    closeBtn.onclick = closeRateOverlay;
+    sheet.appendChild(closeBtn);
+
+    var selected = document.createElement('div');
+    selected.className = 'rate-selected';
+    selected.appendChild(staffPhotoNode(person, 'rate-selected-photo-wrap'));
+    var name = document.createElement('div');
+    name.className = 'rate-selected-name';
+    name.textContent = person.name || '';
+    selected.appendChild(name);
+    var sub = document.createElement('div');
+    sub.className = 'rate-subtitle';
+    sub.style.marginBottom = '0';
+    sub.textContent = rateLabel('rateSub');
+    selected.appendChild(sub);
+    sheet.appendChild(selected);
+
+    var stars = document.createElement('div');
+    stars.className = 'rate-stars';
+    for (var i = 1; i <= 5; i++) {
+      (function (value) {
+        var starBtn = document.createElement('button');
+        starBtn.type = 'button';
+        starBtn.className = 'rate-star-btn';
+        starBtn.textContent = '★';
+        starBtn.setAttribute('aria-label', value + ' estrellas');
+        starBtn.onclick = function () {
+          selectedStars = value;
+          Array.prototype.forEach.call(stars.children, function (btn, idx) {
+            btn.classList.toggle('filled', idx < value);
+          });
+          submitBtn.disabled = false;
+        };
+        stars.appendChild(starBtn);
+      })(i);
+    }
+    sheet.appendChild(stars);
+
+    var comment = document.createElement('textarea');
+    comment.className = 'rate-comment';
+    comment.placeholder = rateLabel('commentPh');
+    comment.maxLength = 500;
+    sheet.appendChild(comment);
+
+    var errorEl = document.createElement('div');
+    errorEl.className = 'rate-error';
+    errorEl.style.display = 'none';
+    sheet.appendChild(errorEl);
+
+    var submitBtn = document.createElement('button');
+    submitBtn.type = 'button';
+    submitBtn.className = 'rate-submit';
+    submitBtn.textContent = rateLabel('submit');
+    submitBtn.disabled = true;
+    submitBtn.onclick = function () {
+      if (!selectedStars) return;
+      submitBtn.disabled = true;
+      submitBtn.textContent = rateLabel('sending');
+      errorEl.style.display = 'none';
+
+      var apiUrl = SUPABASE_URL + '/functions/v1/submit-employee-rating';
+      fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: ANON_KEY, Authorization: 'Bearer ' + ANON_KEY },
+        body: JSON.stringify({
+          company_id: companyId,
+          store_id: storeId || null,
+          employee_id: person.id,
+          stars: selectedStars,
+          comment: comment.value.trim() || null,
+        }),
+      })
+        .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
+        .then(function (result) {
+          if (!result.ok || result.data.error) throw new Error(result.data.error || 'error');
+          showThanks();
+        })
+        .catch(function () {
+          submitBtn.disabled = false;
+          submitBtn.textContent = rateLabel('submit');
+          errorEl.textContent = rateLabel('error');
+          errorEl.style.display = '';
+        });
+    };
+    sheet.appendChild(submitBtn);
+
+    closeBtn.focus();
+  }
+
+  function showThanks() {
+    var sheet = document.getElementById('rateSheet');
+    sheet.innerHTML = '';
+    var closeBtn = document.createElement('button');
+    closeBtn.className = 'rate-close';
+    closeBtn.textContent = '✕';
+    closeBtn.setAttribute('aria-label', 'Cerrar');
+    closeBtn.onclick = closeRateOverlay;
+    sheet.appendChild(closeBtn);
+
+    var box = document.createElement('div');
+    box.className = 'rate-thanks';
+    var icon = document.createElement('div');
+    icon.className = 'rate-thanks-icon';
+    icon.textContent = '🎉';
+    box.appendChild(icon);
+    var text = document.createElement('div');
+    text.className = 'rate-thanks-text';
+    text.textContent = rateLabel('thanks');
+    box.appendChild(text);
+    sheet.appendChild(box);
+
+    setTimeout(closeRateOverlay, 1800);
+  }
 
   // Todas las categorías se pintan seguidas, una tras otra, en una sola
   // página continua (nada de filtrar/ocultar) — al llegar al final de una
@@ -899,9 +1191,12 @@
         });
         selectedCategory = CATEGORY_ORDER[0] || null;
 
+        STAFF = Array.isArray(data.staff) ? data.staff.filter(function (p) { return p && p.id && p.name; }) : [];
+
         renderLangs();
         renderCategoryNav();
         renderContent();
+        renderRateFab();
       })
       .catch(function () {
         document.getElementById('main').innerHTML = '<div class="empty">No se pudo cargar el menú. Comprueba tu conexión.</div>';
