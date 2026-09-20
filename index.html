@@ -159,22 +159,23 @@
 
   .rate-staff-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px 10px; }
   .rate-staff-item { display: flex; flex-direction: column; align-items: center; gap: 6px; border: none; background: none; padding: 4px; }
-  /* Foto tipo "avatar recortado": la sube el propio dueño ya sin fondo
-     (PNG transparente), así que aquí no se le pone ni círculo ni fondo de
-     color detrás — se deja flotar tal cual, con una sombra suave para que
-     se despegue de la página. Solo cuando NO hay foto se cae a un círculo
-     con la inicial, que sí necesita su propio fondo para verse. */
-  .rate-staff-avatar { width: 100%; height: 100px; display: flex; align-items: flex-end; justify-content: center; }
-  .rate-staff-avatar img { max-width: 100%; max-height: 100%; object-fit: contain; filter: drop-shadow(0 6px 10px rgba(0,0,0,0.22)); }
-  .rate-staff-avatar-fallback { width: 76px; height: 76px; border-radius: 50%; background: linear-gradient(160deg, var(--accent), var(--accent-soft)); display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 14px rgba(0,0,0,0.18); }
-  .rate-staff-initial { color: #fff; font-size: 26px; font-weight: 700; }
+  /* Foto tipo "avatar": marco cuadrado con esquinas redondeadas (no
+     círculo, no relleno de color) — se ve bien tanto si la foto ya viene
+     recortada sin fondo (PNG transparente) como si es una foto normal sin
+     recortar, que es lo más habitual. object-fit: cover rellena todo el
+     marco sin dejar huecos ni cortes raros. Solo cuando NO hay foto se
+     cae a un círculo con la inicial, que sí necesita su propio fondo. */
+  .rate-staff-avatar { width: 100%; aspect-ratio: 1 / 1; border-radius: 22px; overflow: hidden; box-shadow: 0 6px 14px rgba(0,0,0,0.18); background: var(--card-bg); }
+  .rate-staff-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .rate-staff-avatar-fallback { width: 100%; aspect-ratio: 1 / 1; border-radius: 22px; background: linear-gradient(160deg, var(--accent), var(--accent-soft)); display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 14px rgba(0,0,0,0.18); }
+  .rate-staff-initial { color: #fff; font-size: 30px; font-weight: 700; }
   .rate-staff-name { font-size: 11.5px; font-weight: 600; text-align: center; line-height: 1.25; }
 
   .rate-selected { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; margin-bottom: 18px; }
-  .rate-selected-avatar { width: 100%; max-width: 200px; height: 150px; display: flex; align-items: flex-end; justify-content: center; }
-  .rate-selected-avatar img { max-width: 100%; max-height: 100%; object-fit: contain; filter: drop-shadow(0 8px 14px rgba(0,0,0,0.25)); }
-  .rate-selected-avatar-fallback { width: 104px; height: 104px; border-radius: 50%; background: linear-gradient(160deg, var(--accent), var(--accent-soft)); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(0,0,0,0.22); }
-  .rate-selected-initial { color: #fff; font-size: 32px; font-weight: 700; }
+  .rate-selected-avatar { width: 150px; height: 150px; border-radius: 32px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.22); background: var(--card-bg); }
+  .rate-selected-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .rate-selected-avatar-fallback { width: 150px; height: 150px; border-radius: 32px; background: linear-gradient(160deg, var(--accent), var(--accent-soft)); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(0,0,0,0.22); }
+  .rate-selected-initial { color: #fff; font-size: 44px; font-weight: 700; }
   .rate-selected-name { font-size: 16px; font-weight: 700; }
 
   .rate-stars { display: flex; justify-content: center; gap: 8px; margin: 6px 0 18px; }
@@ -290,8 +291,8 @@
     altramuces:     { icon: '🫘', es: 'Altramuces',    en: 'Lupin' },
     moluscos:       { icon: '🐚', es: 'Moluscos',      en: 'Molluscs' }
   };
-  var ALLERGEN_LEGEND_TITLE = { es: 'Alérgenos (Reglamento UE 1169/2011)', en: 'Allergens (EU Regulation 1169/2011)' };
-  var BESTSELLER_LABELS = { es: '★ Más vendidos', en: '★ Best sellers', it: '★ I più venduti', pt: '★ Mais vendidos', fr: '★ Meilleures ventes', de: '★ Bestseller' };
+  var ALLERGEN_LEGEND_TITLE = { es: 'Alérgenos (Reglamento UE 1169/2011)', en: 'Allergens (EU Regulation 1169/2011)', it: 'Allergeni (Regolamento UE 1169/2011)', pt: 'Alergénios (Regulamento UE 1169/2011)', fr: 'Allergènes (Règlement UE 1169/2011)', de: 'Allergene (EU-Verordnung 1169/2011)', da: 'Allergener (EU-forordning 1169/2011)', th: 'สารก่อภูมิแพ้ (ระเบียบสหภาพยุโรป 1169/2011)', ru: 'Аллергены (Регламент ЕС 1169/2011)', zh: '过敏原(欧盟法规1169/2011)' };
+  var BESTSELLER_LABELS = { es: '★ Más vendidos', en: '★ Best sellers', it: '★ I più venduti', pt: '★ Mais vendidos', fr: '★ Meilleures ventes', de: '★ Bestseller', da: '★ Bedst sælgende', th: '★ ขายดีที่สุด', ru: '★ Хиты продаж', zh: '★ 畅销菜品' };
   var BESTSELLER_CATEGORY = '__bestsellers__';
   var CATEGORY_I18N = {};
   var ITEMS = [];
@@ -299,23 +300,23 @@
   var selectedCategory = null;
 
   // "Valóranos": el cliente elige a quién le atendió y deja 1-5
-  // estrellas + comentario opcional (ver submit-employee-rating). Solo
-  // se traduce a un puñado de idiomas (como BESTSELLER_LABELS arriba) —
-  // el resto cae a español, que es aceptable para un texto tan corto.
+  // estrellas + comentario opcional (ver submit-employee-rating). Se
+  // traduce a los mismos 10 idiomas que el resto del menú (ver LANGS más
+  // abajo) para que no cambie de idioma a mitad de la experiencia.
   var RATE_LABELS = {
-    fabLabel:  { es: 'Valóranos', en: 'Rate us', it: 'Valutaci', pt: 'Avalie-nos', fr: 'Notez-nous', de: 'Bewerten' },
-    pickTitle: { es: '¿Quién te atendió?', en: 'Who served you?', it: 'Chi ti ha servito?', pt: 'Quem te atendeu?', fr: 'Qui vous a servi ?', de: 'Wer hat bedient?' },
-    pickSub:   { es: 'Elige a tu camarero/a para valorarle', en: 'Choose who served you to rate them', it: 'Scegli chi ti ha servito per valutarlo', pt: 'Escolha quem te atendeu para avaliar', fr: 'Choisissez qui vous a servi pour le noter', de: 'Wähle, wer dich bedient hat' },
-    rateSub:   { es: '¿Cómo lo hizo?', en: 'How did they do?', it: "Com'è andata?", pt: 'Como foi o atendimento?', fr: "Comment était le service ?", de: 'Wie war der Service?' },
-    commentPh: { es: 'Cuéntanos más (opcional)', en: 'Tell us more (optional)', it: 'Raccontaci di più (facoltativo)', pt: 'Conte-nos mais (opcional)', fr: 'Dites-nous en plus (facultatif)', de: 'Erzähl uns mehr (optional)' },
-    submit:    { es: 'Enviar valoración', en: 'Submit rating', it: 'Invia valutazione', pt: 'Enviar avaliação', fr: 'Envoyer la note', de: 'Bewertung senden' },
-    sending:   { es: 'Enviando…', en: 'Sending…', it: 'Invio…', pt: 'Enviando…', fr: 'Envoi…', de: 'Senden…' },
-    error:     { es: 'No se pudo enviar. Inténtalo de nuevo.', en: "Couldn't send it. Please try again.", it: 'Invio non riuscito. Riprova.', pt: 'Não foi possível enviar. Tente novamente.', fr: "Échec de l'envoi. Réessayez.", de: 'Senden fehlgeschlagen. Bitte erneut versuchen.' },
-    thanks:    { es: '¡Gracias por tu valoración!', en: 'Thanks for your rating!', it: 'Grazie per la tua valutazione!', pt: 'Obrigado pela sua avaliação!', fr: 'Merci pour votre avis !', de: 'Danke für deine Bewertung!' },
-    reviewTitle: { es: '¡Nos alegra mucho! 🎉', en: "We're thrilled! 🎉", it: 'Che gioia! 🎉', pt: 'Que alegria! 🎉', fr: 'Quel plaisir ! 🎉', de: 'Das freut uns sehr! 🎉' },
-    reviewSub:   { es: '¿Nos dejarías también una reseña en Google? Nos ayuda muchísimo.', en: 'Would you also leave us a Google review? It helps us a lot.', it: 'Ci lasceresti anche una recensione su Google? Ci aiuta molto.', pt: 'Deixaria também uma avaliação no Google? Ajuda-nos muito.', fr: 'Laisseriez-vous aussi un avis sur Google ? Cela nous aide beaucoup.', de: 'Würdest du uns auch bei Google bewerten? Das hilft uns sehr.' },
-    reviewCta:   { es: 'Escribir reseña en Google', en: 'Write a Google review', it: 'Scrivi una recensione su Google', pt: 'Escrever avaliação no Google', fr: 'Écrire un avis sur Google', de: 'Google-Bewertung schreiben' },
-    reviewSkip:  { es: 'Ahora no', en: 'Not now', it: 'Non ora', pt: 'Agora não', fr: 'Pas maintenant', de: 'Nicht jetzt' },
+    fabLabel:  { es: 'Valóranos', en: 'Rate us', it: 'Valutaci', pt: 'Avalie-nos', fr: 'Notez-nous', de: 'Bewerten', da: 'Bedøm os', th: 'ให้คะแนนเรา', ru: 'Оцените нас', zh: '给我们评分' },
+    pickTitle: { es: '¿Quién te atendió?', en: 'Who served you?', it: 'Chi ti ha servito?', pt: 'Quem te atendeu?', fr: 'Qui vous a servi ?', de: 'Wer hat bedient?', da: 'Hvem betjente dig?', th: 'ใครเป็นคนดูแลคุณ?', ru: 'Кто вас обслуживал?', zh: '是谁为您服务的?' },
+    pickSub:   { es: 'Elige a tu camarero/a para valorarle', en: 'Choose who served you to rate them', it: 'Scegli chi ti ha servito per valutarlo', pt: 'Escolha quem te atendeu para avaliar', fr: 'Choisissez qui vous a servi pour le noter', de: 'Wähle, wer dich bedient hat', da: 'Vælg din tjener for at bedømme dem', th: 'เลือกพนักงานที่ดูแลคุณเพื่อให้คะแนน', ru: 'Выберите официанта, чтобы оценить его', zh: '选择为您服务的员工进行评分' },
+    rateSub:   { es: '¿Cómo lo hizo?', en: 'How did they do?', it: "Com'è andata?", pt: 'Como foi o atendimento?', fr: "Comment était le service ?", de: 'Wie war der Service?', da: 'Hvordan klarede de det?', th: 'บริการเป็นอย่างไรบ้าง?', ru: 'Как он справился?', zh: '服务怎么样?' },
+    commentPh: { es: 'Cuéntanos más (opcional)', en: 'Tell us more (optional)', it: 'Raccontaci di più (facoltativo)', pt: 'Conte-nos mais (opcional)', fr: 'Dites-nous en plus (facultatif)', de: 'Erzähl uns mehr (optional)', da: 'Fortæl os mere (valgfrit)', th: 'บอกเราเพิ่มเติม (ไม่บังคับ)', ru: 'Расскажите подробнее (необязательно)', zh: '告诉我们更多(可选)' },
+    submit:    { es: 'Enviar valoración', en: 'Submit rating', it: 'Invia valutazione', pt: 'Enviar avaliação', fr: 'Envoyer la note', de: 'Bewertung senden', da: 'Send bedømmelse', th: 'ส่งคะแนน', ru: 'Отправить оценку', zh: '提交评分' },
+    sending:   { es: 'Enviando…', en: 'Sending…', it: 'Invio…', pt: 'Enviando…', fr: 'Envoi…', de: 'Senden…', da: 'Sender…', th: 'กำลังส่ง…', ru: 'Отправка…', zh: '发送中…' },
+    error:     { es: 'No se pudo enviar. Inténtalo de nuevo.', en: "Couldn't send it. Please try again.", it: 'Invio non riuscito. Riprova.', pt: 'Não foi possível enviar. Tente novamente.', fr: "Échec de l'envoi. Réessayez.", de: 'Senden fehlgeschlagen. Bitte erneut versuchen.', da: 'Kunne ikke sendes. Prøv igen.', th: 'ส่งไม่สำเร็จ กรุณาลองอีกครั้ง', ru: 'Не удалось отправить. Попробуйте снова.', zh: '发送失败,请重试。' },
+    thanks:    { es: '¡Gracias por tu valoración!', en: 'Thanks for your rating!', it: 'Grazie per la tua valutazione!', pt: 'Obrigado pela sua avaliação!', fr: 'Merci pour votre avis !', de: 'Danke für deine Bewertung!', da: 'Tak for din bedømmelse!', th: 'ขอบคุณสำหรับการให้คะแนน!', ru: 'Спасибо за вашу оценку!', zh: '感谢您的评分!' },
+    reviewTitle: { es: '¡Nos alegra mucho! 🎉', en: "We're thrilled! 🎉", it: 'Che gioia! 🎉', pt: 'Que alegria! 🎉', fr: 'Quel plaisir ! 🎉', de: 'Das freut uns sehr! 🎉', da: 'Det glæder os meget! 🎉', th: 'เรายินดีมาก! 🎉', ru: 'Мы очень рады! 🎉', zh: '我们非常高兴!🎉' },
+    reviewSub:   { es: '¿Nos dejarías también una reseña en Google? Nos ayuda muchísimo.', en: 'Would you also leave us a Google review? It helps us a lot.', it: 'Ci lasceresti anche una recensione su Google? Ci aiuta molto.', pt: 'Deixaria também uma avaliação no Google? Ajuda-nos muito.', fr: 'Laisseriez-vous aussi un avis sur Google ? Cela nous aide beaucoup.', de: 'Würdest du uns auch bei Google bewerten? Das hilft uns sehr.', da: 'Vil du også give os en anmeldelse på Google? Det hjælper os meget.', th: 'คุณช่วยรีวิวเราบน Google ด้วยได้ไหม? ช่วยเราได้มากเลย', ru: 'Оставите нам отзыв в Google? Это очень нам поможет.', zh: '您愿意在Google上给我们留下评价吗?这对我们帮助很大。' },
+    reviewCta:   { es: 'Escribir reseña en Google', en: 'Write a Google review', it: 'Scrivi una recensione su Google', pt: 'Escrever avaliação no Google', fr: 'Écrire un avis sur Google', de: 'Google-Bewertung schreiben', da: 'Skriv en Google-anmeldelse', th: 'เขียนรีวิวใน Google', ru: 'Написать отзыв в Google', zh: '撰写Google评价' },
+    reviewSkip:  { es: 'Ahora no', en: 'Not now', it: 'Non ora', pt: 'Agora não', fr: 'Pas maintenant', de: 'Nicht jetzt', da: 'Ikke nu', th: 'ไว้ทีหลัง', ru: 'Не сейчас', zh: '暂不' },
   };
   function rateLabel(key) {
     var entry = RATE_LABELS[key];
