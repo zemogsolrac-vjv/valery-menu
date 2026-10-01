@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Redirigiendo…</title>
+</head>
+<body>
+<script>
+  // GitHub Pages sirve ESTE archivo (404.html) para cualquier ruta que no
+  // exista como fichero real en el repo — por ejemplo
+  // /valery-menu/el-bodegon, que no es un archivo, solo una "ruta bonita"
+  // inventada para que el nombre del restaurante salga en la URL en vez
+  // del company_id/store_id en crudo. Aquí se convierte esa ruta en el
+  // ?slug=el-bodegon que ya entiende index.html (ver
+  // valery-menu-index.html) y se redirige ahí — todo sin tener que crear
+  // un archivo real por cada sucursal ni comprar ningún dominio.
+  var base = '/valery-menu/';
+  var path = location.pathname;
+  if (path.indexOf(base) === 0) {
+    var rest = path.slice(base.length).replace(/\/+$/, '');
+    if (rest) {
+      var extra = location.search ? location.search.replace(/^\?/, '&') : '';
+      location.replace(base + '?slug=' + encodeURIComponent(rest) + extra);
+    } else {
+      location.replace(base + location.search);
+    }
+  } else {
+    // Ruta fuera de /valery-menu/ (no debería pasar en este repo) — a la
+    // portada en vez de dejar al cliente en una página de error en blanco.
+    location.replace(base);
+  }
+</script>
+</body>
+</html>
