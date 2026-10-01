@@ -197,6 +197,29 @@
   .allergen-legend strong { display: block; color: var(--text); font-size: 12px; margin-bottom: 6px; }
   .allergen-legend .legend-items { display: flex; flex-wrap: wrap; gap: 6px 12px; }
 
+  /* Mini-web: solo se muestra en sucursales SIN página propia
+     (branches.website_url vacío) — ver renderMiniWeb(). Reutiliza el
+     mismo lenguaje visual que el resto del menú (tarjetas blancas,
+     color de marca) para que no se note como un "añadido" aparte. */
+  .mini-web { max-width: 900px; margin: 0 auto; padding: 14px 12px 0; }
+  .mini-web-section { background: var(--card-bg); border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+  .mini-web-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--accent); margin-bottom: 8px; }
+  .mini-web-row { font-size: 13.5px; color: var(--text); line-height: 1.5; }
+  .mini-web-row + .mini-web-row { margin-top: 4px; }
+  .mini-web-hours { white-space: pre-line; }
+  .mini-web-map-link { display: inline-block; margin-top: 8px; font-size: 12.5px; font-weight: 700; color: var(--accent); text-decoration: none; }
+  .mini-web-reserve { display: flex; gap: 10px; margin-top: 10px; }
+  .mini-web-reserve a { flex: 1; text-align: center; padding: 12px; border-radius: 12px; font-weight: 700; font-size: 13.5px; text-decoration: none; }
+  .mini-web-reserve a.whatsapp { background: #25D366; color: #06341f; }
+  .mini-web-reserve a.call { background: var(--accent); color: #fff; }
+  .mini-web-gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 4px; }
+  .mini-web-gallery img { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 10px; cursor: zoom-in; }
+  .mini-web-review { padding: 8px 0; border-top: 1px solid #f0ece4; }
+  .mini-web-review:first-child { border-top: none; padding-top: 0; }
+  .mini-web-review-stars { color: #f5a623; font-size: 13px; letter-spacing: 1px; }
+  .mini-web-review-text { font-size: 13px; color: var(--muted); line-height: 1.4; margin-top: 2px; font-style: italic; }
+  .mini-web-review-name { font-size: 11.5px; font-weight: 700; color: var(--text); margin-top: 3px; }
+
   .empty, .loading { text-align: center; padding: 60px 20px; color: var(--muted); }
 
   @media (min-width: 860px) {
@@ -219,6 +242,7 @@
     </div>
   </div>
 </header>
+<div id="miniWeb" style="display:none"></div>
 <div class="layout">
   <nav class="categories" id="categories" aria-label="Categorías del menú"></nav>
   <main id="main"><div class="loading">Cargando menú…</div></main>
@@ -334,6 +358,18 @@
   var params = new URLSearchParams(location.search);
   var companyId = params.get('company_id');
   var storeId = params.get('store_id');
+
+  // Subdominio por sucursal (ej. elbodegon.valery.menu) en vez de
+  // ?company_id=...&store_id=...: si la página no trae company_id en la
+  // URL (los QRs/enlaces viejos de GitHub Pages siguen funcionando
+  // igual) y el dominio tiene más de 2 partes y no es github.io/
+  // localhost, la primera parte del dominio es el slug de la sucursal
+  // (branches.slug) — ver public-menu, que lo resuelve a company_id/
+  // store_id del lado del servidor. ?slug=... también funciona a mano
+  // para pruebas, sea cual sea el dominio.
+  var hostParts = location.hostname.split('.');
+  var isBareHost = location.hostname === 'localhost' || location.hostname.endsWith('.github.io') || hostParts.length <= 2;
+  var slug = params.get('slug') || ((!companyId && !isBareHost && hostParts.length > 2) ? hostParts[0] : null);
 
   var stored = null;
   try { stored = localStorage.getItem('menuLang'); } catch (e) {}
@@ -1211,11 +1247,236 @@
     }
   }, { passive: true });
 
-  if (!companyId) {
+  // SEO: meta description dinámica + datos estructurados (JSON-LD,
+  // schema.org Restaurant/FoodEstablishment + AggregateRating + Menu).
+  // Esta página es una SPA (no hay servidor que genere HTML por plato),
+  // pero Googlebot SÍ ejecuta JavaScript y lee el DOM final antes de
+  // indexar, así que inyectar esto por JS después de cargar los datos
+  // reales funciona igual que si viniera ya en el HTML. Se llama una vez
+  // por carga, justo después de recibir la respuesta de public-menu.
+  function upsertMeta(name, content) {
+    if (!content) return;
+    var el = document.querySelector('meta[name="' + name + '"]');
+    if (!el) {
+      el = document.createElement('meta');
+      el.setAttribute('name', name);
+      document.head.appendChild(el);
+    }
+    el.setAttribute('content', content);
+  }
+
+  function upsertJsonLd(id, obj) {
+    var el = document.getElementById(id);
+    if (!el) {
+      el = document.createElement('script');
+      el.type = 'application/ld+json';
+      el.id = id;
+      document.head.appendChild(el);
+    }
+    el.textContent = JSON.stringify(obj);
+  }
+
+  function applySeoMetadata(data, displayName) {
+    // --- Meta description: nombre + hasta 4 platos destacados + localidad ---
+    var highlightNames = ITEMS.slice(0, 4).map(function (it) { return fieldFor(it, 'name'); }).filter(Boolean);
+    var localityBit = data.city ? (' en ' + data.city) : '';
+    var descParts = [displayName + localityBit];
+    if (highlightNames.length) descParts.push('Platos: ' + highlightNames.join(', ') + '.');
+    upsertMeta('description', descParts.join('. ').slice(0, 300));
+
+    // --- JSON-LD: Restaurant/FoodEstablishment ---
+    var pageUrl = location.href.split('#')[0];
+    var restaurantSchema = {
+      '@context': 'https://schema.org',
+      '@type': 'Restaurant',
+      '@id': pageUrl,
+      name: displayName,
+      url: pageUrl
+    };
+    if (data.logo_url) restaurantSchema.image = data.logo_url;
+    if (data.phone) restaurantSchema.telephone = data.phone;
+    if (data.address || data.city || data.postal_code) {
+      restaurantSchema.address = {
+        '@type': 'PostalAddress',
+        streetAddress: data.address || undefined,
+        addressLocality: data.city || undefined,
+        postalCode: data.postal_code || undefined,
+        addressCountry: 'ES'
+      };
+    }
+    if (typeof data.rating_avg === 'number' && data.rating_count > 0) {
+      restaurantSchema.aggregateRating = {
+        '@type': 'AggregateRating',
+        ratingValue: Number(data.rating_avg.toFixed(1)),
+        reviewCount: data.rating_count
+      };
+    }
+
+    // --- JSON-LD: Menu / MenuItem, anidado dentro del restaurante ---
+    if (ITEMS.length) {
+      var menuSections = CATEGORY_ORDER.filter(function (c) { return c !== BESTSELLER_CATEGORY; }).map(function (cat) {
+        var sectionItems = ITEMS.filter(function (it) { return (it.category || 'General') === cat; });
+        return {
+          '@type': 'MenuSection',
+          name: cat,
+          hasMenuItem: sectionItems.map(function (it) {
+            var menuItem = {
+              '@type': 'MenuItem',
+              name: fieldFor(it, 'name')
+            };
+            var desc = fieldFor(it, 'description');
+            if (desc) menuItem.description = desc;
+            if (it.price !== null && it.price !== undefined) {
+              menuItem.offers = { '@type': 'Offer', price: Number(it.price).toFixed(2), priceCurrency: 'EUR' };
+            }
+            if (it.image_url) menuItem.image = it.image_url;
+            return menuItem;
+          })
+        };
+      });
+      restaurantSchema.hasMenu = {
+        '@type': 'Menu',
+        '@id': pageUrl + '#menu',
+        name: 'Menú de ' + displayName,
+        hasMenuSection: menuSections
+      };
+    }
+
+    upsertJsonLd('ld-restaurant', restaurantSchema);
+  }
+
+  // Mini-web: solo para sucursales SIN página propia (website_url
+  // vacío) — contacto/horario/mapa, botón de reservar por WhatsApp o
+  // llamada, galería de fotos del local, y 2-3 reseñas reales
+  // destacadas. Se inserta entre la cabecera y el menú.
+  function renderMiniWeb(data, displayName) {
+    var wrap = document.getElementById('miniWeb');
+    if (data.website_url) { wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
+
+    var hasContact = data.address || data.city || data.opening_hours;
+    var hasGallery = Array.isArray(data.gallery_photos) && data.gallery_photos.length > 0;
+    var hasReviews = Array.isArray(data.reviews_highlight) && data.reviews_highlight.length > 0;
+    if (!hasContact && !hasGallery && !hasReviews && !data.phone) { wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
+
+    wrap.innerHTML = '';
+    wrap.className = 'mini-web';
+
+    if (hasContact || data.phone) {
+      var contactSection = document.createElement('div');
+      contactSection.className = 'mini-web-section';
+      var title = document.createElement('div');
+      title.className = 'mini-web-title';
+      title.textContent = '📍 Visítanos';
+      contactSection.appendChild(title);
+
+      var addressParts = [data.address, data.postal_code, data.city].filter(Boolean);
+      if (addressParts.length) {
+        var addrRow = document.createElement('div');
+        addrRow.className = 'mini-web-row';
+        addrRow.textContent = addressParts.join(', ');
+        contactSection.appendChild(addrRow);
+
+        var mapLink = document.createElement('a');
+        mapLink.className = 'mini-web-map-link';
+        mapLink.href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(addressParts.join(', '));
+        mapLink.target = '_blank';
+        mapLink.rel = 'noopener';
+        mapLink.textContent = '🗺️ Cómo llegar';
+        contactSection.appendChild(mapLink);
+      }
+
+      if (data.opening_hours) {
+        var hoursRow = document.createElement('div');
+        hoursRow.className = 'mini-web-row mini-web-hours';
+        hoursRow.style.marginTop = addressParts.length ? '8px' : '0';
+        hoursRow.textContent = data.opening_hours;
+        contactSection.appendChild(hoursRow);
+      }
+
+      if (data.phone) {
+        var digits = String(data.phone).replace(/[^0-9+]/g, '');
+        var reserveRow = document.createElement('div');
+        reserveRow.className = 'mini-web-reserve';
+        var wa = document.createElement('a');
+        wa.className = 'whatsapp';
+        wa.href = 'https://wa.me/' + digits.replace('+', '') + '?text=' + encodeURIComponent('Hola, quiero reservar en ' + displayName);
+        wa.target = '_blank';
+        wa.rel = 'noopener';
+        wa.textContent = '💬 Reservar por WhatsApp';
+        var call = document.createElement('a');
+        call.className = 'call';
+        call.href = 'tel:' + digits;
+        call.textContent = '📞 Llamar para reservar';
+        reserveRow.appendChild(wa);
+        reserveRow.appendChild(call);
+        contactSection.appendChild(reserveRow);
+      }
+
+      wrap.appendChild(contactSection);
+    }
+
+    if (hasGallery) {
+      var gallerySection = document.createElement('div');
+      gallerySection.className = 'mini-web-section';
+      var galleryTitle = document.createElement('div');
+      galleryTitle.className = 'mini-web-title';
+      galleryTitle.textContent = '📸 El local';
+      gallerySection.appendChild(galleryTitle);
+
+      var grid = document.createElement('div');
+      grid.className = 'mini-web-gallery';
+      data.gallery_photos.slice(0, 9).forEach(function (src) {
+        var img = document.createElement('img');
+        img.src = src;
+        img.loading = 'lazy';
+        img.alt = displayName;
+        img.addEventListener('click', function () { openLightbox(src, displayName); });
+        grid.appendChild(img);
+      });
+      gallerySection.appendChild(grid);
+      wrap.appendChild(gallerySection);
+    }
+
+    if (hasReviews) {
+      var reviewsSection = document.createElement('div');
+      reviewsSection.className = 'mini-web-section';
+      var reviewsTitle = document.createElement('div');
+      reviewsTitle.className = 'mini-web-title';
+      reviewsTitle.textContent = '⭐ Lo que dicen de nosotros';
+      reviewsSection.appendChild(reviewsTitle);
+
+      data.reviews_highlight.forEach(function (r) {
+        var item = document.createElement('div');
+        item.className = 'mini-web-review';
+        var stars = document.createElement('div');
+        stars.className = 'mini-web-review-stars';
+        stars.textContent = '★'.repeat(r.rating) + '☆'.repeat(5 - r.rating);
+        item.appendChild(stars);
+        var text = document.createElement('div');
+        text.className = 'mini-web-review-text';
+        text.textContent = '“' + r.comment + '”';
+        item.appendChild(text);
+        if (r.reviewer_name) {
+          var name = document.createElement('div');
+          name.className = 'mini-web-review-name';
+          name.textContent = '— ' + r.reviewer_name;
+          item.appendChild(name);
+        }
+        reviewsSection.appendChild(item);
+      });
+      wrap.appendChild(reviewsSection);
+    }
+
+    wrap.style.display = 'block';
+  }
+
+  if (!companyId && !slug) {
     document.getElementById('main').innerHTML = '<div class="empty">Falta el identificador de la empresa en el enlace.</div>';
   } else {
-    var apiUrl = SUPABASE_URL + '/functions/v1/public-menu?company_id=' + encodeURIComponent(companyId);
-    if (storeId) apiUrl += '&store_id=' + encodeURIComponent(storeId);
+    var apiUrl = slug
+      ? SUPABASE_URL + '/functions/v1/public-menu?slug=' + encodeURIComponent(slug)
+      : SUPABASE_URL + '/functions/v1/public-menu?company_id=' + encodeURIComponent(companyId);
+    if (!slug && storeId) apiUrl += '&store_id=' + encodeURIComponent(storeId);
     // cache: 'no-store' + parámetro de fecha: algunos navegadores móviles
     // (sobre todo Safari en iOS al escanear un QR) ignoran el
     // Cache-Control: no-store que ya manda la función y sirven una copia
@@ -1278,6 +1539,8 @@
         renderCategoryNav();
         renderContent();
         renderRateFab();
+        applySeoMetadata(data, displayName);
+        renderMiniWeb(data, displayName);
       })
       .catch(function () {
         document.getElementById('main').innerHTML = '<div class="empty">No se pudo cargar el menú. Comprueba tu conexión.</div>';
