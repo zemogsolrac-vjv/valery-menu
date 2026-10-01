@@ -478,10 +478,58 @@
     if (!entry) return '';
     return entry[current] || entry.es;
   }
+
+  // Textos fijos de la interfaz de la mini-web avanzada (menú de
+  // navegación, botones del hero, títulos de sección, pie de página,
+  // aviso de postre/valoración, compartir...) — traducidos a los mismos
+  // 10 idiomas que el resto del menú (ver LANGS), con el mismo patrón de
+  // "entry[current] || entry.es" que ya usa RATE_LABELS.
+  var UI_LABELS = {
+    navInicio: { es: 'Inicio', en: 'Home', it: 'Home', pt: 'Início', da: 'Hjem', th: 'หน้าแรก', ru: 'Главная', fr: 'Accueil', de: 'Startseite', zh: '首页' },
+    navMenu: { es: 'Menú', en: 'Menu', it: 'Menù', pt: 'Menu', da: 'Menu', th: 'เมนู', ru: 'Меню', fr: 'Menu', de: 'Speisekarte', zh: '菜单' },
+    navHorario: { es: 'Horario', en: 'Hours', it: 'Orari', pt: 'Horário', da: 'Åbningstider', th: 'เวลาทำการ', ru: 'Часы работы', fr: 'Horaires', de: 'Öffnungszeiten', zh: '营业时间' },
+    navFotos: { es: 'Fotos', en: 'Photos', it: 'Foto', pt: 'Fotos', da: 'Billeder', th: 'รูปภาพ', ru: 'Фото', fr: 'Photos', de: 'Fotos', zh: '照片' },
+    navMapa: { es: 'Mapa', en: 'Map', it: 'Mappa', pt: 'Mapa', da: 'Kort', th: 'แผนที่', ru: 'Карта', fr: 'Carte', de: 'Karte', zh: '地图' },
+    navChef: { es: 'El chef', en: 'The chef', it: 'Lo chef', pt: 'O chef', da: 'Kokken', th: 'เชฟของเรา', ru: 'Шеф-повар', fr: 'Le chef', de: 'Der Chefkoch', zh: '主厨' },
+    navChefs: { es: 'Nuestros chefs', en: 'Our chefs', it: 'I nostri chef', pt: 'Nossos chefs', da: 'Vores kokke', th: 'เชฟของเรา', ru: 'Наши шеф-повара', fr: 'Nos chefs', de: 'Unsere Köche', zh: '我们的主厨' },
+    navOtrasSucursales: { es: 'Otras sucursales', en: 'Other branches', it: 'Altre sedi', pt: 'Outras unidades', da: 'Andre afdelinger', th: 'สาขาอื่น', ru: 'Другие филиалы', fr: 'Autres succursales', de: 'Andere Filialen', zh: '其他分店' },
+    heroVerCarta: { es: '🍽️ Ver carta', en: '🍽️ View menu', it: '🍽️ Vedi il menù', pt: '🍽️ Ver cardápio', da: '🍽️ Se menu', th: '🍽️ ดูเมนู', ru: '🍽️ Посмотреть меню', fr: '🍽️ Voir le menu', de: '🍽️ Speisekarte ansehen', zh: '🍽️ 查看菜单' },
+    heroReservar: { es: '💬 Reservar', en: '💬 Book a table', it: '💬 Prenota', pt: '💬 Reservar', da: '💬 Reservér', th: '💬 จองโต๊ะ', ru: '💬 Забронировать', fr: '💬 Réserver', de: '💬 Reservieren', zh: '💬 预订' },
+    ratingOnGoogle: { es: 'en Google', en: 'on Google', it: 'su Google', pt: 'no Google', da: 'på Google', th: 'บน Google', ru: 'в Google', fr: 'sur Google', de: 'bei Google', zh: '在 Google 上' },
+    reviewsWord: { es: 'reseñas', en: 'reviews', it: 'recensioni', pt: 'avaliações', da: 'anmeldelser', th: 'รีวิว', ru: 'отзывов', fr: 'avis', de: 'Bewertungen', zh: '条评价' },
+    sectionHorario: { es: '🕒 Horario', en: '🕒 Hours', it: '🕒 Orari', pt: '🕒 Horário', da: '🕒 Åbningstider', th: '🕒 เวลาทำการ', ru: '🕒 Часы работы', fr: '🕒 Horaires', de: '🕒 Öffnungszeiten', zh: '🕒 营业时间' },
+    sectionMapa: { es: '🗺️ Mapa', en: '🗺️ Map', it: '🗺️ Mappa', pt: '🗺️ Mapa', da: '🗺️ Kort', th: '🗺️ แผนที่', ru: '🗺️ Карта', fr: '🗺️ Carte', de: '🗺️ Karte', zh: '🗺️ 地图' },
+    sectionFotos: { es: '📸 Fotos', en: '📸 Photos', it: '📸 Foto', pt: '📸 Fotos', da: '📸 Billeder', th: '📸 รูปภาพ', ru: '📸 Фото', fr: '📸 Photos', de: '📸 Fotos', zh: '📸 照片' },
+    sectionReviews: { es: '⭐ Lo que dicen de nosotros', en: '⭐ What people say about us', it: '⭐ Cosa dicono di noi', pt: '⭐ O que dizem sobre nós', da: '⭐ Hvad folk siger om os', th: '⭐ สิ่งที่ลูกค้าพูดถึงเรา', ru: '⭐ Что о нас говорят', fr: "⭐ Ce que l'on dit de nous", de: '⭐ Was man über uns sagt', zh: '⭐ 大家对我们的评价' },
+    sectionChefSpecials: { es: '👨‍🍳 Especialidades del chef', en: "👨‍🍳 Chef's specials", it: '👨‍🍳 Specialità dello chef', pt: '👨‍🍳 Especialidades do chef', da: '👨‍🍳 Kokkens specialiteter', th: '👨‍🍳 เมนูพิเศษของเชฟ', ru: '👨‍🍳 Фирменные блюда шефа', fr: '👨‍🍳 Spécialités du chef', de: '👨‍🍳 Spezialitäten des Chefkochs', zh: '👨‍🍳 主厨特色菜' },
+    reserveWhatsapp: { es: '💬 Reservar por WhatsApp', en: '💬 Book via WhatsApp', it: '💬 Prenota su WhatsApp', pt: '💬 Reservar pelo WhatsApp', da: '💬 Reservér via WhatsApp', th: '💬 จองผ่าน WhatsApp', ru: '💬 Забронировать через WhatsApp', fr: '💬 Réserver via WhatsApp', de: '💬 Über WhatsApp reservieren', zh: '💬 通过WhatsApp预订' },
+    reserveCall: { es: '📞 Llamar para reservar', en: '📞 Call to book', it: '📞 Chiama per prenotare', pt: '📞 Ligar para reservar', da: '📞 Ring for at reservere', th: '📞 โทรเพื่อจอง', ru: '📞 Позвонить для брони', fr: '📞 Appeler pour réserver', de: '📞 Anrufen zum Reservieren', zh: '📞 致电预订' },
+    openInMaps: { es: 'Abrir en Google Maps', en: 'Open in Google Maps', it: 'Apri in Google Maps', pt: 'Abrir no Google Maps', da: 'Åbn i Google Maps', th: 'เปิดใน Google Maps', ru: 'Открыть в Google Картах', fr: 'Ouvrir dans Google Maps', de: 'In Google Maps öffnen', zh: '在Google地图中打开' },
+    dessertText: { es: '¿Qué tal todo? Si te apetece un postre, avisa a tu camarero/a — y si te está gustando, nos ayuda mucho que nos valores.', en: 'How is everything going? If you fancy a dessert, just ask your server — and if you are enjoying it, a rating would help us a lot.', it: "Come sta andando? Se ti va un dolce, chiedi al tuo cameriere — e se ti sta piacendo, una valutazione ci aiuterebbe molto.", pt: 'Como está tudo? Se quiser uma sobremesa, chame o garçom — e se estiver gostando, uma avaliação nos ajudaria muito.', da: 'Hvordan går det? Hvis du har lyst til dessert, så sig til — og hvis du nyder det, hjælper en bedømmelse os meget.', th: 'เป็นอย่างไรบ้าง? ถ้าอยากทานของหวาน แจ้งพนักงานได้เลย และถ้าคุณชอบ การให้คะแนนจะช่วยเราได้มาก', ru: 'Как вам у нас? Если хотите десерт, просто позовите официанта — а если вам нравится, оценка очень нам поможет.', fr: "Comment se passe votre repas ? Si vous avez envie d'un dessert, demandez à votre serveur — et si vous appréciez, une note nous aiderait beaucoup.", de: 'Wie läuft es? Wenn du Lust auf ein Dessert hast, frag einfach die Bedienung — und wenn es dir gefällt, würde uns eine Bewertung sehr helfen.', zh: '一切都还好吗?如果想吃甜点,请告诉服务员——如果您喜欢,给我们评个分对我们帮助很大。' },
+    dessertDismiss: { es: 'Ahora no', en: 'Not now', it: 'Non ora', pt: 'Agora não', da: 'Ikke nu', th: 'ไว้ทีหลัง', ru: 'Не сейчас', fr: 'Pas maintenant', de: 'Nicht jetzt', zh: '暂不' },
+    dessertRate: { es: '⭐ Valorar', en: '⭐ Rate us', it: '⭐ Valutaci', pt: '⭐ Avaliar', da: '⭐ Bedøm os', th: '⭐ ให้คะแนน', ru: '⭐ Оценить', fr: '⭐ Noter', de: '⭐ Bewerten', zh: '⭐ 评分' },
+    shareText: { es: 'Echa un vistazo a', en: 'Check out', it: "Dai un'occhiata a", pt: 'Dá uma olhada em', da: 'Tjek', th: 'ลองดู', ru: 'Посмотрите', fr: 'Découvrez', de: 'Schau dir an:', zh: '快来看看' },
+    linkCopied: { es: 'Enlace copiado', en: 'Link copied', it: 'Link copiato', pt: 'Link copiado', da: 'Link kopieret', th: 'คัดลอกลิงก์แล้ว', ru: 'Ссылка скопирована', fr: 'Lien copié', de: 'Link kopiert', zh: '链接已复制' },
+    whatsappReserveMsg: { es: 'Hola, quiero reservar en', en: 'Hi, I would like to book a table at', it: 'Ciao, vorrei prenotare da', pt: 'Olá, gostaria de reservar em', da: 'Hej, jeg vil gerne reservere hos', th: 'สวัสดี ฉันต้องการจองโต๊ะที่', ru: 'Здравствуйте, хочу забронировать столик в', fr: 'Bonjour, je voudrais réserver chez', de: 'Hallo, ich möchte einen Tisch reservieren bei', zh: '您好,我想在以下餐厅订位:' },
+    noItemsYet: { es: 'El menú todavía no tiene platos publicados.', en: 'The menu does not have any dishes published yet.', it: 'Il menù non ha ancora piatti pubblicati.', pt: 'O cardápio ainda não tem pratos publicados.', da: 'Menuen har endnu ingen retter offentliggjort.', th: 'เมนูยังไม่มีการเผยแพร่เมนูอาหาร', ru: 'В меню пока нет опубликованных блюд.', fr: "Le menu n'a pas encore de plats publiés.", de: 'Die Speisekarte hat noch keine veröffentlichten Gerichte.', zh: '菜单尚未发布任何菜品。' },
+    missingIdError: { es: 'Falta el identificador de la empresa en el enlace.', en: 'The business identifier is missing from this link.', it: "Manca l'identificativo dell'azienda nel link.", pt: 'Falta o identificador da empresa no link.', da: 'Virksomhedens ID mangler i linket.', th: 'ลิงก์นี้ขาดรหัสประจำตัวธุรกิจ', ru: 'В ссылке отсутствует идентификатор компании.', fr: "L'identifiant de l'entreprise est manquant dans ce lien.", de: 'In diesem Link fehlt die Unternehmens-ID.', zh: '此链接缺少商家标识。' },
+    loadError: { es: 'No se pudo cargar el menú. Comprueba tu conexión.', en: 'Could not load the menu. Please check your connection.', it: 'Impossibile caricare il menù. Controlla la connessione.', pt: 'Não foi possível carregar o cardápio. Verifique sua conexão.', da: 'Kunne ikke indlæse menuen. Tjek din forbindelse.', th: 'ไม่สามารถโหลดเมนูได้ กรุณาตรวจสอบการเชื่อมต่อของคุณ', ru: 'Не удалось загрузить меню. Проверьте подключение.', fr: "Impossible de charger le menu. Vérifiez votre connexion.", de: 'Speisekarte konnte nicht geladen werden. Bitte Verbindung prüfen.', zh: '无法加载菜单,请检查您的网络连接。' }
+  };
+  function uiLabel(key) {
+    var entry = UI_LABELS[key];
+    if (!entry) return '';
+    return entry[current] || entry.es;
+  }
   var STAFF = [];
   // Chef(es) de la sucursal (empleados marcados "Es chef" en la app),
   // para la foto flotante sobre Inicio y la página dedicada.
   var CHEFS = [];
+  // Se guarda la última respuesta del servidor y el nombre a mostrar
+  // para poder reconstruir toda la mini-web (textos de interfaz) al
+  // cambiar de idioma desde el selector de banderas, sin tener que
+  // volver a pedir los datos — ver el onclick de cada idioma más abajo.
+  var LAST_DATA = null;
+  var LAST_DISPLAY_NAME = null;
   // Enlace de "pedir reseña" de Google de esta sucursal (lo pega el dueño
   // en Valery, ver CompanyBranch.google_review_url) — si existe, a quien
   // valore con 5 estrellas se le invita también a dejar reseña pública.
@@ -604,7 +652,7 @@
     stars.textContent = '★'.repeat(rounded) + '☆'.repeat(5 - rounded);
     badge.appendChild(stars);
     var text = document.createElement('span');
-    text.textContent = data.rating_avg.toFixed(1) + '/5 en Google · ' + data.rating_count + ' reseñas';
+    text.textContent = data.rating_avg.toFixed(1) + '/5 ' + uiLabel('ratingOnGoogle') + ' · ' + data.rating_count + ' ' + uiLabel('reviewsWord');
     badge.appendChild(text);
     bar.style.display = 'block';
   }
@@ -622,9 +670,14 @@
     mapa: ['mwMap'],
     chef: ['mwChef']
   };
+  // Qué "página" está activa ahora mismo — se usa para volver a mostrarla
+  // tras reconstruir la mini-web entera al cambiar de idioma (ver el
+  // onclick del selector de idioma, más abajo).
+  var currentPageKey = 'inicio';
 
   function showPage(key) {
     if (!PAGE_GROUPS[key]) return;
+    currentPageKey = key;
     Object.keys(PAGE_GROUPS).forEach(function (k) {
       PAGE_GROUPS[k].forEach(function (id) {
         var el = document.getElementById(id);
@@ -661,12 +714,12 @@
     // Valery de todas formas en vez de asumir que "ya tiene web propia".
     if (!data.advanced_web_enabled) { hideMenuBtn(); return; }
 
-    var sections = [{ key: 'inicio', label: 'Inicio' }];
-    if (ITEMS.length) sections.push({ key: 'menu', label: 'Menú' });
-    if (data.opening_hours || data.phone) sections.push({ key: 'horario', label: 'Horario' });
-    if (Array.isArray(data.gallery_photos) && data.gallery_photos.length) sections.push({ key: 'fotos', label: 'Fotos' });
-    if (data.address || data.city) sections.push({ key: 'mapa', label: 'Mapa' });
-    if (CHEFS.length) sections.push({ key: 'chef', label: CHEFS.length > 1 ? 'Nuestros chefs' : 'El chef' });
+    var sections = [{ key: 'inicio', label: uiLabel('navInicio') }];
+    if (ITEMS.length) sections.push({ key: 'menu', label: uiLabel('navMenu') });
+    if (data.opening_hours || data.phone) sections.push({ key: 'horario', label: uiLabel('navHorario') });
+    if (Array.isArray(data.gallery_photos) && data.gallery_photos.length) sections.push({ key: 'fotos', label: uiLabel('navFotos') });
+    if (data.address || data.city) sections.push({ key: 'mapa', label: uiLabel('navMapa') });
+    if (CHEFS.length) sections.push({ key: 'chef', label: CHEFS.length > 1 ? uiLabel('navChefs') : uiLabel('navChef') });
 
     var siblings = (Array.isArray(data.siblings) ? data.siblings : []).filter(function (s) { return s && s.slug; });
 
@@ -693,7 +746,7 @@
     if (siblings.length) {
       var divider = document.createElement('div');
       divider.className = 'site-nav-label';
-      divider.textContent = 'Otras sucursales';
+      divider.textContent = uiLabel('navOtrasSucursales');
       dropdown.appendChild(divider);
       siblings.forEach(function (s) {
         var a = document.createElement('a');
@@ -741,14 +794,14 @@
   // se cae a copiar el enlace al portapapeles.
   document.getElementById('headerShareBtn').addEventListener('click', function () {
     var name = (document.getElementById('companyName').textContent || 'este sitio').trim();
-    var shareData = { title: name, text: 'Echa un vistazo a ' + name, url: location.href };
+    var shareData = { title: name, text: uiLabel('shareText') + ' ' + name, url: location.href };
     if (navigator.share) {
       navigator.share(shareData).catch(function () {});
       return;
     }
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(location.href).then(function () {
-        alert('Enlace copiado');
+        alert(uiLabel('linkCopied'));
       }).catch(function () {
         window.open('https://wa.me/?text=' + encodeURIComponent(shareData.text + ' ' + shareData.url), '_blank');
       });
@@ -838,6 +891,22 @@
         renderCategoryNav();
         renderContent();
         renderRateFab();
+        // El resto de la interfaz de la mini-web avanzada (menú de
+        // navegación, portada, horario/mapa/fotos/reseñas, pie de
+        // página, página del chef) tiene sus propios textos fijos
+        // (ver UI_LABELS) — hay que reconstruirla también, o se quedaría
+        // en el idioma con el que cargó la página la primera vez.
+        if (LAST_DATA) {
+          renderRatingBadge(LAST_DATA);
+          renderSiteNav(LAST_DATA);
+          renderMiniWeb(LAST_DATA, LAST_DISPLAY_NAME);
+          renderFooter(LAST_DATA, LAST_DISPLAY_NAME);
+          adjustStickyOffsets();
+          var headerMenuBtn = document.getElementById('headerMenuBtn');
+          if (LAST_DATA.advanced_web_enabled && headerMenuBtn && headerMenuBtn.style.display !== 'none') {
+            showPage(currentPageKey);
+          }
+        }
       };
       menu.appendChild(item);
     });
@@ -1577,7 +1646,7 @@
     if (!ITEMS.length) {
       var empty = document.createElement('div');
       empty.className = 'empty';
-      empty.textContent = 'El menú todavía no tiene platos publicados.';
+      empty.textContent = uiLabel('noItemsYet');
       main.appendChild(empty);
       return;
     }
@@ -1827,7 +1896,7 @@
       stars.textContent = '★'.repeat(rounded) + '☆'.repeat(5 - rounded);
       ratingChip.appendChild(stars);
       var ratingText = document.createElement('span');
-      ratingText.textContent = data.rating_avg.toFixed(1) + ' · ' + data.rating_count + ' reseñas en Google';
+      ratingText.textContent = data.rating_avg.toFixed(1) + ' · ' + data.rating_count + ' ' + uiLabel('reviewsWord') + ' ' + uiLabel('ratingOnGoogle');
       ratingChip.appendChild(ratingText);
       overlay.appendChild(ratingChip);
     }
@@ -1860,7 +1929,7 @@
     var menuBtn = document.createElement('a');
     menuBtn.className = 'primary';
     menuBtn.href = '#main';
-    menuBtn.textContent = '🍽️ Ver carta';
+    menuBtn.textContent = uiLabel('heroVerCarta');
     menuBtn.onclick = function (e) {
       e.preventDefault();
       var headerMenuBtn = document.getElementById('headerMenuBtn');
@@ -1877,10 +1946,10 @@
       var digits = String(data.phone).replace(/[^0-9+]/g, '');
       var waBtn = document.createElement('a');
       waBtn.className = 'whatsapp';
-      waBtn.href = 'https://wa.me/' + digits.replace('+', '') + '?text=' + encodeURIComponent('Hola, quiero reservar en ' + displayName);
+      waBtn.href = 'https://wa.me/' + digits.replace('+', '') + '?text=' + encodeURIComponent(uiLabel('whatsappReserveMsg') + ' ' + displayName);
       waBtn.target = '_blank';
       waBtn.rel = 'noopener';
-      waBtn.textContent = '💬 Reservar';
+      waBtn.textContent = uiLabel('heroReservar');
       cta.appendChild(waBtn);
     }
     overlay.appendChild(cta);
@@ -1998,15 +2067,18 @@
     el.id = 'dessertPrompt';
     el.className = 'dessert-prompt';
     el.setAttribute('role', 'dialog');
-    el.setAttribute('aria-label', '¿Qué tal todo?');
+    el.setAttribute('aria-label', uiLabel('dessertText'));
     el.innerHTML =
       '<button class="dessert-prompt-close" aria-label="Cerrar">✕</button>' +
       '<div class="dessert-prompt-icon">🍰</div>' +
-      '<div class="dessert-prompt-text">¿Qué tal todo? Si te apetece un postre, avisa a tu camarero/a — y si te está gustando, nos ayuda mucho que nos valores.</div>' +
+      '<div class="dessert-prompt-text"></div>' +
       '<div class="dessert-prompt-actions">' +
-      '<button class="dessert-prompt-btn dismiss" id="dessertPromptDismiss">Ahora no</button>' +
-      '<button class="dessert-prompt-btn rate" id="dessertPromptRate">⭐ Valorar</button>' +
+      '<button class="dessert-prompt-btn dismiss" id="dessertPromptDismiss"></button>' +
+      '<button class="dessert-prompt-btn rate" id="dessertPromptRate"></button>' +
       '</div>';
+    el.querySelector('.dessert-prompt-text').textContent = uiLabel('dessertText');
+    el.querySelector('#dessertPromptDismiss').textContent = uiLabel('dessertDismiss');
+    el.querySelector('#dessertPromptRate').textContent = uiLabel('dessertRate');
     document.body.appendChild(el);
     requestAnimationFrame(function () { el.classList.add('open'); });
     document.getElementById('dessertPromptDismiss').onclick = closeDessertPrompt;
@@ -2097,7 +2169,7 @@
     if (specials.length) {
       var title = document.createElement('div');
       title.className = 'mw-chef-specials-title';
-      title.textContent = '👨‍🍳 Especialidades del chef';
+      title.textContent = uiLabel('sectionChefSpecials');
       section.appendChild(title);
 
       var grid = document.createElement('div');
@@ -2158,7 +2230,7 @@
       hoursSection.id = 'mwHours';
       var hoursTitle = document.createElement('h2');
       hoursTitle.className = 'mini-web-title';
-      hoursTitle.textContent = '🕒 Horario';
+      hoursTitle.textContent = uiLabel('sectionHorario');
       hoursSection.appendChild(hoursTitle);
 
       if (data.opening_hours) {
@@ -2175,14 +2247,14 @@
         reserveRow.style.marginTop = data.opening_hours ? '10px' : '0';
         var wa = document.createElement('a');
         wa.className = 'whatsapp';
-        wa.href = 'https://wa.me/' + digits.replace('+', '') + '?text=' + encodeURIComponent('Hola, quiero reservar en ' + displayName);
+        wa.href = 'https://wa.me/' + digits.replace('+', '') + '?text=' + encodeURIComponent(uiLabel('whatsappReserveMsg') + ' ' + displayName);
         wa.target = '_blank';
         wa.rel = 'noopener';
-        wa.textContent = '💬 Reservar por WhatsApp';
+        wa.textContent = uiLabel('reserveWhatsapp');
         var call = document.createElement('a');
         call.className = 'call';
         call.href = 'tel:' + digits;
-        call.textContent = '📞 Llamar para reservar';
+        call.textContent = uiLabel('reserveCall');
         reserveRow.appendChild(wa);
         reserveRow.appendChild(call);
         hoursSection.appendChild(reserveRow);
@@ -2197,7 +2269,7 @@
       mapSection.id = 'mwMap';
       var mapTitle = document.createElement('h2');
       mapTitle.className = 'mini-web-title';
-      mapTitle.textContent = '🗺️ Mapa';
+      mapTitle.textContent = uiLabel('sectionMapa');
       mapSection.appendChild(mapTitle);
 
       var addressParts = [data.address, data.postal_code, data.city].filter(Boolean);
@@ -2222,7 +2294,7 @@
       mapLink.href = 'https://www.google.com/maps/search/?api=1&query=' + mapQuery;
       mapLink.target = '_blank';
       mapLink.rel = 'noopener';
-      mapLink.textContent = 'Abrir en Google Maps';
+      mapLink.textContent = uiLabel('openInMaps');
       mapSection.appendChild(mapLink);
 
       wrap.appendChild(mapSection);
@@ -2234,7 +2306,7 @@
       gallerySection.id = 'mwGallery';
       var galleryTitle = document.createElement('h2');
       galleryTitle.className = 'mini-web-title';
-      galleryTitle.textContent = '📸 Fotos';
+      galleryTitle.textContent = uiLabel('sectionFotos');
       gallerySection.appendChild(galleryTitle);
 
       var grid = document.createElement('div');
@@ -2257,7 +2329,7 @@
       reviewsSection.id = 'mwReviews';
       var reviewsTitle = document.createElement('h2');
       reviewsTitle.className = 'mini-web-title';
-      reviewsTitle.textContent = '⭐ Lo que dicen de nosotros';
+      reviewsTitle.textContent = uiLabel('sectionReviews');
       reviewsSection.appendChild(reviewsTitle);
 
       data.reviews_highlight.forEach(function (r) {
@@ -2290,7 +2362,8 @@
   }
 
   if (!companyId && !slug) {
-    document.getElementById('main').innerHTML = '<div class="empty">Falta el identificador de la empresa en el enlace.</div>';
+    document.getElementById('main').innerHTML = '<div class="empty"></div>';
+    document.querySelector('#main .empty').textContent = uiLabel('missingIdError');
   } else {
     var apiUrl = slug
       ? SUPABASE_URL + '/functions/v1/public-menu?slug=' + encodeURIComponent(slug)
@@ -2316,6 +2389,8 @@
         // de la empresa — solo se cae al nombre de empresa si el enlace
         // no trae sucursal (company_id sin store_id).
         var displayName = data.branch_name || data.company_name || 'Menú';
+        LAST_DATA = data;
+        LAST_DISPLAY_NAME = displayName;
         document.title = displayName + ' · Menú';
         document.getElementById('companyName').textContent = displayName;
         document.getElementById('branchName').style.display = 'none';
@@ -2377,7 +2452,8 @@
         }
       })
       .catch(function () {
-        document.getElementById('main').innerHTML = '<div class="empty">No se pudo cargar el menú. Comprueba tu conexión.</div>';
+        document.getElementById('main').innerHTML = '<div class="empty"></div>';
+        document.querySelector('#main .empty').textContent = uiLabel('loadError');
       });
   }
 </script>
