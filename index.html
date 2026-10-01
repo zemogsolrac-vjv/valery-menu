@@ -217,7 +217,7 @@
      (branches.website_url vacío) — ver renderMiniWeb(). Reutiliza el
      mismo lenguaje visual que el resto del menú (tarjetas blancas,
      color de marca) para que no se note como un "añadido" aparte. */
-  .mini-web { max-width: 900px; margin: 0 auto; padding: 14px 12px 0; }
+  .mini-web { position: relative; max-width: 900px; margin: 0 auto; padding: 14px 12px 0; }
   .mini-web-section { background: var(--card-bg); border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
   .mini-web-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--accent); margin: 0 0 8px; }
   .mini-web-row { font-size: 13.5px; color: var(--text); line-height: 1.5; }
@@ -276,11 +276,24 @@
      encima del borde superior del hero, a medio camino entre la
      cabecera y la foto de portada — con 1 chef, centrada; con 2 o más,
      en fila. Toca la foto para ir a su página. */
-  .mw-chef-float { position: relative; max-width: 900px; margin: 0 auto; display: flex; justify-content: center; align-items: flex-start; gap: 14px; height: 0; z-index: 5; }
-  .mw-chef-float-item { position: relative; top: 28px; display: flex; flex-direction: column; align-items: center; gap: 4px; background: none; border: none; padding: 0; cursor: pointer; }
-  .mw-chef-float-avatar { width: 64px; height: 64px; border-radius: 50%; overflow: hidden; border: 3px solid #fff; box-shadow: 0 4px 14px rgba(0,0,0,0.35); background: var(--card-bg); }
-  .mw-chef-float-avatar img { width: 100%; height: 100%; object-fit: cover; }
-  .mw-chef-float-name { font-size: 10.5px; font-weight: 700; color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,0.6); max-width: 76px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* Chef gigante y flotante en Inicio: pegado al borde derecho de la
+     pantalla, del mismo lado que el botón redondo de WhatsApp, ocupando
+     casi todo el alto de la pantalla al entrar — "por delante" del resto
+     de la web (z-index por encima de la portada y de lo que venga
+     debajo), pero SIN posición fija: es un hijo con position:absolute de
+     #miniWeb (que es position:relative), así que es simple — si el
+     usuario baja la página, la imagen baja con ella como cualquier otro
+     contenido, no se queda pegada a la pantalla. Fondo transparente
+     (la foto del empleado ya viene recortada sin fondo al subirla). */
+  .mw-chef-giant { position: absolute; top: 0; right: -12px; z-index: 6; display: flex; align-items: flex-start; gap: 6px; pointer-events: none; }
+  .mw-chef-giant-item { border: none; background: none; padding: 0; cursor: pointer; pointer-events: auto; }
+  /* "Casi toda la altura de la pantalla" (max-height) es el objetivo,
+     pero con un tope de ancho (max-width) para que nunca tape el resto
+     de la portada si la foto no es muy vertical — el navegador respeta
+     el que de los dos límites toque primero, manteniendo la proporción
+     real de la foto. Con una foto de cuerpo entero bien vertical, el
+     límite que manda es el de altura y se ve enorme de arriba abajo. */
+  .mw-chef-giant-item img { max-height: 85vh; max-width: 42vw; width: auto; height: auto; display: block; object-fit: contain; filter: drop-shadow(0 10px 18px rgba(0,0,0,0.35)); }
 
   /* Página dedicada al chef: foto grande, nombre, biografía y sus platos
      marcados como "especialidad del chef" (misma tarjeta que el resto
@@ -663,7 +676,7 @@
   // id (o varios) de los bloques que construye renderMiniWeb/el propio
   // HTML; showPage() los intercambia.
   var PAGE_GROUPS = {
-    inicio: ['mwHero', 'mwGallery', 'mwReviews'],
+    inicio: ['mwHero', 'mwChefGiant', 'mwGallery', 'mwReviews'],
     menu: ['menuLayout'],
     horario: ['mwHours'],
     fotos: ['mwGallery'],
@@ -2090,33 +2103,31 @@
     };
   }
 
-  // Foto(s) del chef flotando sobre la portada, como en cualquier web de
-  // restaurante — con 1 chef sale centrada, con 2+ en fila. Toca la foto
-  // para ir a su página dedicada (buildChefPage). Si el chef no tiene
-  // foto, no se muestra flotando (no hay nada que "flote"), pero sigue
-  // teniendo su página accesible desde el menú de navegación.
-  function buildChefFloat(chefs) {
+  // Chef(es) gigantes y flotantes en Inicio: pegados al borde derecho de
+  // la pantalla (mismo lado que el botón de WhatsApp), ocupando casi
+  // toda la altura de la pantalla, por delante del resto de la web — pero
+  // como hijos de #miniWeb (position:relative) con position:absolute, NO
+  // position:fixed, así que al hacer scroll bajan con el resto de la
+  // página en vez de quedarse pegados a la pantalla. Toca la foto para
+  // ir a la página dedicada del chef (buildChefPage). Si ningún chef
+  // tiene foto, no se muestra nada (su página sigue accesible desde el
+  // menú de navegación).
+  function buildChefGiant(chefs) {
     var withPhoto = chefs.filter(function (c) { return c.photo_url; });
     if (!withPhoto.length) return null;
     var wrap = document.createElement('div');
-    wrap.className = 'mw-chef-float';
-    withPhoto.slice(0, 3).forEach(function (c) {
+    wrap.className = 'mw-chef-giant';
+    wrap.id = 'mwChefGiant';
+    withPhoto.slice(0, 2).forEach(function (c) {
       var item = document.createElement('button');
       item.type = 'button';
-      item.className = 'mw-chef-float-item';
+      item.className = 'mw-chef-giant-item';
       item.setAttribute('aria-label', c.name);
       item.onclick = function () { showPage('chef'); };
-      var avatar = document.createElement('div');
-      avatar.className = 'mw-chef-float-avatar';
       var img = document.createElement('img');
       img.src = c.photo_url;
       img.alt = c.name;
-      avatar.appendChild(img);
-      item.appendChild(avatar);
-      var name = document.createElement('div');
-      name.className = 'mw-chef-float-name';
-      name.textContent = c.name;
-      item.appendChild(name);
+      item.appendChild(img);
       wrap.appendChild(item);
     });
     return wrap;
@@ -2216,8 +2227,11 @@
 
     wrap.innerHTML = '';
     wrap.className = 'mini-web';
-    var chefFloat = CHEFS.length ? buildChefFloat(CHEFS) : null;
-    if (chefFloat) wrap.appendChild(chefFloat);
+    // El chef gigante va PRIMERO en el DOM (position:absolute, no ocupa
+    // espacio en el flujo) para que quede por delante del hero y de lo
+    // que venga justo debajo, pegado al borde derecho.
+    var chefGiant = CHEFS.length ? buildChefGiant(CHEFS) : null;
+    if (chefGiant) wrap.appendChild(chefGiant);
     wrap.appendChild(buildHero(data, displayName));
 
     var hasGallery = Array.isArray(data.gallery_photos) && data.gallery_photos.length > 0;
