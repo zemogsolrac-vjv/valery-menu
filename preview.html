@@ -1,0 +1,1883 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Menú</title>
+<style>
+  :root {
+    color-scheme: light;
+    --accent: #c0392b;
+    --accent-soft: #fdece7;
+    --bg: #f6f2ec;
+    --card-bg: #ffffff;
+    --text: #2b2320;
+    /* Antes #8a8078 daba un contraste de ~3.9:1 sobre fondo blanco — no
+       llega al mínimo de 4.5:1 que pide WCAG AA para texto normal, y en
+       esta carta el gris "muted" se usa en textos pequeños (descripción,
+       alérgenos). Este tono más oscuro pasa el mínimo sin cambiar
+       demasiado el aspecto general. */
+    --muted: #6b6259;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); }
+
+  /* Accesibilidad: quien navega con teclado (o con un lector de
+     pantalla que también usa el foco) necesita ver claramente dónde
+     está — sin esto, tarjetas, botones e iconos no mostraban ningún
+     borde al recibir el foco. :focus-visible evita que aparezca el
+     contorno al tocar con el dedo/ratón, solo con teclado. */
+  a:focus-visible, button:focus-visible, .card:focus-visible, img[role="button"]:focus-visible {
+    outline: 3px solid #2b7de9;
+    outline-offset: 2px;
+  }
+
+  /* Antes el logo iba apilado ENCIMA del título (columna centrada), lo
+     que hacía la cabecera muy alta — sobre todo en pantallas anchas
+     (escritorio/iPad), donde sobra ancho de sobra pero se desperdiciaba
+     en alto. Ahora es una fila: el logo se queda a la izquierda (mismo
+     sitio de siempre) centrado verticalmente, y el título/sucursal/
+     idioma quedan centrados en el espacio que sobra — así la barra
+     ocupa mucho menos alto sin mover el logo del lado izquierdo. */
+  header { position: sticky; top: 0; z-index: 20; background: #2b2320; color: #fff; padding: 8px 16px; }
+  .header-inner { display: flex; align-items: center; gap: 12px; max-width: 900px; margin: 0 auto; }
+  header .logo { max-height: 40px; max-width: 120px; object-fit: contain; border-radius: 6px; flex-shrink: 0; margin-bottom: 0; }
+  .header-text { flex: 1; min-width: 0; text-align: center; }
+  header h1 { margin: 0; font-size: 17px; font-weight: 700; }
+  header .branch { margin: 1px 0 0; font-size: 11.5px; font-weight: 500; color: rgba(255,255,255,0.7); }
+  /* Selector de idioma: botón flotante fijo abajo a la derecha (como un
+     FAB), no dentro de la cabecera — así queda siempre a mano sin
+     importar cuánto hayas bajado en la carta, y no ocupa sitio arriba.
+     El menú se abre hacia ARRIBA desde el botón (no hacia abajo, porque
+     no hay espacio debajo al estar pegado al borde de la pantalla). */
+  .lang-picker { position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 40; }
+  .lang-btn { width: 48px; height: 48px; border-radius: 50%; border: none; background: #2b2320; color: #fff; font-size: 21px; display: flex; align-items: center; justify-content: center; line-height: 1; box-shadow: 0 6px 16px rgba(0,0,0,0.32); }
+  .lang-menu { position: absolute; right: 0; bottom: 58px; left: auto; top: auto; transform: translateY(8px); background: #fff; border-radius: 12px; box-shadow: 0 10px 28px rgba(0,0,0,0.28); padding: 6px; width: 190px; max-height: 55vh; overflow-y: auto; z-index: 30; opacity: 0; pointer-events: none; transition: opacity 0.15s, transform 0.15s; }
+  .lang-menu.open { opacity: 1; pointer-events: auto; transform: translateY(0); }
+  .lang-menu button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 10px; border: none; background: none; border-radius: 8px; font-size: 13.5px; font-weight: 600; color: var(--text); text-align: left; }
+  .lang-menu button.active { background: var(--accent-soft); color: var(--accent); }
+  .lang-menu .flag { font-size: 18px; line-height: 1; }
+  .contact-links { display: flex; justify-content: center; gap: 8px; padding: 8px 12px 2px; }
+  .contact-links a {
+    display: inline-flex; align-items: center; gap: 5px; text-decoration: none;
+    background: var(--accent); color: #fff; font-weight: 700; font-size: 12px;
+    padding: 7px 14px; border-radius: 999px;
+  }
+  .contact-links a.whatsapp { background: #25D366; color: #06341f; }
+
+  .layout { display: flex; flex-direction: column; }
+
+  .categories { display: flex; overflow-x: auto; gap: 8px; padding: 10px 12px; background: #fff; position: sticky; top: 52px; z-index: 15; border-bottom: 1px solid #eee; -webkit-overflow-scrolling: touch; }
+  .categories::-webkit-scrollbar { display: none; }
+  .categories button { flex: 0 0 auto; white-space: nowrap; border: none; background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 12.5px; letter-spacing: 0.02em; text-transform: uppercase; padding: 9px 16px; border-radius: 999px; transition: background 0.15s, color 0.15s; }
+  .categories button.active { background: var(--accent); color: #fff; }
+
+  /* El padding de abajo es grande a propósito: si la última categoría
+     tiene poco contenido, sin este margen la página no puede
+     desplazarse lo suficiente para llevar su título hasta la línea que
+     usa el scroll-spy, y entonces el resaltado se queda pegado en la
+     categoría anterior aunque estés viendo la última. */
+  main { padding: 14px 12px calc(45vh); max-width: 900px; margin: 0 auto; flex: 1; min-width: 0; }
+  .category-section { scroll-margin-top: 96px; }
+  .category-title { font-size: 15px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); font-weight: 700; margin: 26px 4px 12px; }
+  .category-section:first-child .category-title { margin-top: 4px; }
+
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .card { background: var(--card-bg); border-radius: 14px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.08); display: flex; flex-direction: column; position: relative; }
+  .card.bestseller { box-shadow: 0 0 0 2px var(--accent), 0 4px 10px rgba(0,0,0,0.12); }
+  .card .thumb { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; background: #ece4d8; display: block; }
+  .card .thumb-placeholder { width: 100%; aspect-ratio: 1 / 1; background: #ece4d8; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 24px; font-weight: 700; }
+  .card .thumb-carousel { position: relative; width: 100%; aspect-ratio: 1 / 1; overflow: hidden; }
+  .card .thumb-scroll { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; width: 100%; height: 100%; scrollbar-width: none; }
+  .card .thumb-scroll::-webkit-scrollbar { display: none; }
+  .card .thumb-scroll img { flex: 0 0 100%; width: 100%; height: 100%; object-fit: cover; scroll-snap-align: start; background: #ece4d8; }
+  .card .thumb-dots { position: absolute; bottom: 6px; left: 0; right: 0; display: flex; justify-content: center; gap: 4px; pointer-events: none; }
+  .card .thumb-dot { width: 5px; height: 5px; border-radius: 50%; background: rgba(255,255,255,0.55); box-shadow: 0 0 1px rgba(0,0,0,0.3); transition: background 0.15s, transform 0.15s; }
+  .card .thumb-dot.active { background: #fff; transform: scale(1.2); }
+  .card-body { padding: 10px 10px 12px; flex: 1; display: flex; flex-direction: column; }
+  .card-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 4px; }
+  .card-tag { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); white-space: nowrap; }
+  .card-name { font-weight: 600; font-size: 13px; line-height: 1.3; margin-bottom: 4px; }
+  .card-desc { font-size: 11px; color: var(--muted); line-height: 1.35; margin-bottom: 6px; }
+  .card-allergens { display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 6px; }
+  .card-allergen { font-size: 9.5px; font-weight: 600; padding: 1px 6px; border-radius: 999px; background: #f1ece4; color: var(--muted); white-space: nowrap; }
+  .card-price { margin-top: auto; font-weight: 700; font-size: 14.5px; color: var(--accent); }
+  .card { cursor: pointer; }
+
+  /* Ficha de producto (modal al hacer clic en una tarjeta) */
+  body.modal-open { overflow: hidden; }
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 100; display: flex; align-items: flex-end; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+  .modal-overlay.open { opacity: 1; pointer-events: auto; }
+  .modal-sheet { background: var(--card-bg); width: 100%; max-width: 480px; max-height: 92vh; border-radius: 18px 18px 0 0; overflow-y: auto; -webkit-overflow-scrolling: touch; position: relative; transform: translateY(24px); transition: transform 0.2s; }
+  .modal-overlay.open .modal-sheet { transform: translateY(0); }
+  .modal-close { position: absolute; top: 10px; right: 10px; z-index: 2; width: 32px; height: 32px; border-radius: 50%; border: none; background: rgba(0,0,0,0.45); color: #fff; font-size: 15px; line-height: 1; display: flex; align-items: center; justify-content: center; }
+  .modal-carousel { position: relative; width: 100%; aspect-ratio: 1 / 1; background: #ece4d8; }
+  .modal-scroll { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; width: 100%; height: 100%; scrollbar-width: none; }
+  .modal-scroll::-webkit-scrollbar { display: none; }
+  .modal-scroll img { flex: 0 0 100%; width: 100%; height: 100%; object-fit: cover; scroll-snap-align: start; cursor: zoom-in; }
+  .modal-dots { position: absolute; bottom: 10px; left: 0; right: 0; display: flex; justify-content: center; gap: 5px; }
+  .modal-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.55); transition: background 0.15s, transform 0.15s; }
+  .modal-dot.active { background: #fff; transform: scale(1.25); }
+  .modal-placeholder { width: 100%; aspect-ratio: 1 / 1; display: flex; align-items: center; justify-content: center; background: #ece4d8; color: var(--muted); font-size: 48px; font-weight: 700; }
+  .modal-body { padding: 16px 18px 26px; }
+  .modal-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
+  .modal-name { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+  .modal-allergens { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
+  .modal-desc { font-size: 14px; color: var(--text); line-height: 1.5; margin-bottom: 14px; white-space: pre-wrap; }
+  .modal-price { font-size: 20px; font-weight: 700; color: var(--accent); }
+  @media (min-width: 860px) {
+    .modal-overlay { align-items: center; }
+    .modal-sheet { border-radius: 18px; max-height: 88vh; }
+  }
+
+  /* Foto a pantalla completa con zoom real (pellizcar) al tocar la imagen dentro de la ficha */
+  .lightbox { position: fixed; inset: 0; background: #000; z-index: 200; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+  .lightbox.open { opacity: 1; pointer-events: auto; }
+  .lightbox img { max-width: 100%; max-height: 100%; }
+  .lightbox-close { position: absolute; top: 14px; right: 14px; width: 36px; height: 36px; border-radius: 50%; border: none; background: rgba(255,255,255,0.18); color: #fff; font-size: 17px; }
+
+  /* "Valóranos": botón flotante abajo a la izquierda (el de idioma ya
+     ocupa la derecha) que abre la selección de camarero/a + estrellas.
+     La foto de cada empleado llega YA recortada sin fondo (PNG con
+     alfa, ver EmployeesView.removeBackground en la app) — por eso basta
+     con ponerla sobre un círculo de color de marca con sombra para que
+     se vea "flotando" en vez de pegada a un fondo cuadrado. */
+  .rate-fab { position: fixed; left: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 40; }
+  .rate-fab-btn { display: flex; align-items: center; gap: 6px; height: 48px; padding: 0 16px 0 14px; border-radius: 999px; border: none; background: var(--accent); color: #fff; font-size: 13px; font-weight: 700; box-shadow: 0 6px 16px rgba(0,0,0,0.28); }
+
+  .rate-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; display: flex; align-items: flex-end; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+  .rate-overlay.open { opacity: 1; pointer-events: auto; }
+  .rate-sheet { background: var(--card-bg); width: 100%; max-width: 480px; max-height: 88vh; border-radius: 18px 18px 0 0; overflow-y: auto; -webkit-overflow-scrolling: touch; position: relative; padding: 22px 20px calc(28px + env(safe-area-inset-bottom, 0px)); transform: translateY(24px); transition: transform 0.2s; }
+  .rate-overlay.open .rate-sheet { transform: translateY(0); }
+  @media (min-width: 860px) {
+    .rate-overlay { align-items: center; }
+    .rate-sheet { border-radius: 18px; max-height: 84vh; }
+  }
+  .rate-close { position: absolute; top: 10px; right: 10px; width: 32px; height: 32px; border-radius: 50%; border: none; background: rgba(0,0,0,0.08); color: var(--text); font-size: 15px; line-height: 1; display: flex; align-items: center; justify-content: center; }
+  .rate-title { font-size: 18px; font-weight: 700; margin: 4px 30px 4px 0; }
+  .rate-subtitle { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
+
+  .rate-staff-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px 10px; }
+  .rate-staff-item { display: flex; flex-direction: column; align-items: center; gap: 6px; border: none; background: none; padding: 4px; }
+  /* Foto tipo "avatar": marco cuadrado con esquinas redondeadas (no
+     círculo, no relleno de color) — se ve bien tanto si la foto ya viene
+     recortada sin fondo (PNG transparente) como si es una foto normal sin
+     recortar, que es lo más habitual. object-fit: cover rellena todo el
+     marco sin dejar huecos ni cortes raros. Solo cuando NO hay foto se
+     cae a un círculo con la inicial, que sí necesita su propio fondo. */
+  .rate-staff-avatar { width: 100%; aspect-ratio: 1 / 1; border-radius: 22px; overflow: hidden; box-shadow: 0 6px 14px rgba(0,0,0,0.18); background: var(--card-bg); }
+  .rate-staff-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .rate-staff-avatar-fallback { width: 100%; aspect-ratio: 1 / 1; border-radius: 22px; background: linear-gradient(160deg, var(--accent), var(--accent-soft)); display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 14px rgba(0,0,0,0.18); }
+  .rate-staff-initial { color: #fff; font-size: 30px; font-weight: 700; }
+  .rate-staff-name { font-size: 11.5px; font-weight: 600; text-align: center; line-height: 1.25; }
+
+  .rate-selected { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; margin-bottom: 18px; }
+  .rate-selected-avatar { width: 150px; height: 150px; border-radius: 32px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.22); background: var(--card-bg); }
+  .rate-selected-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .rate-selected-avatar-fallback { width: 150px; height: 150px; border-radius: 32px; background: linear-gradient(160deg, var(--accent), var(--accent-soft)); display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(0,0,0,0.22); }
+  .rate-selected-initial { color: #fff; font-size: 44px; font-weight: 700; }
+  .rate-selected-name { font-size: 16px; font-weight: 700; }
+
+  .rate-stars { display: flex; justify-content: center; gap: 8px; margin: 6px 0 18px; }
+  .rate-star-btn { border: none; background: none; font-size: 34px; line-height: 1; color: #e0d9cf; padding: 4px; }
+  .rate-star-btn.filled { color: #f5a623; }
+
+  .rate-comment { width: 100%; min-height: 70px; border: 1px solid #e6ddd0; border-radius: 12px; padding: 10px 12px; font-size: 14px; font-family: inherit; color: var(--text); resize: vertical; background: var(--bg); }
+  .rate-submit { width: 100%; margin-top: 14px; height: 46px; border: none; border-radius: 12px; background: var(--accent); color: #fff; font-size: 15px; font-weight: 700; }
+  .rate-submit:disabled { opacity: 0.6; }
+  .rate-error { color: #c0392b; font-size: 12.5px; margin-top: 8px; text-align: center; }
+  .rate-thanks { text-align: center; padding: 30px 10px 10px; }
+  .rate-thanks-icon { font-size: 44px; }
+  .rate-thanks-text { margin-top: 10px; font-size: 15px; font-weight: 600; }
+  .rate-review-sub { margin-top: 8px; font-size: 13.5px; color: var(--muted); line-height: 1.4; }
+  .rate-review-cta { display: block; width: 100%; margin-top: 18px; height: 46px; line-height: 46px; border: none; border-radius: 12px; background: var(--accent); color: #fff; font-size: 15px; font-weight: 700; text-align: center; text-decoration: none; }
+  .rate-review-skip { display: block; width: 100%; margin-top: 10px; background: none; border: none; color: var(--muted); font-size: 13px; padding: 8px; text-align: center; }
+
+  .allergen-legend { margin: 32px 4px 0; padding: 14px; background: var(--card-bg); border-radius: 12px; font-size: 11px; color: var(--muted); line-height: 1.6; }
+  .allergen-legend strong { display: block; color: var(--text); font-size: 12px; margin-bottom: 6px; }
+  .allergen-legend .legend-items { display: flex; flex-wrap: wrap; gap: 6px 12px; }
+
+  /* Mini-web: solo se muestra en sucursales SIN página propia
+     (branches.website_url vacío) — ver renderMiniWeb(). Reutiliza el
+     mismo lenguaje visual que el resto del menú (tarjetas blancas,
+     color de marca) para que no se note como un "añadido" aparte. */
+  .mini-web { max-width: 900px; margin: 0 auto; padding: 14px 12px 0; }
+  .mini-web-section { background: var(--card-bg); border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+  .mini-web-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--accent); margin: 0 0 8px; }
+  .mini-web-row { font-size: 13.5px; color: var(--text); line-height: 1.5; }
+  .mini-web-row + .mini-web-row { margin-top: 4px; }
+  .mini-web-hours { white-space: pre-line; }
+  .mini-web-map-link { display: inline-block; margin-top: 8px; font-size: 12.5px; font-weight: 700; color: var(--accent); text-decoration: none; }
+  .mini-web-reserve { display: flex; gap: 10px; margin-top: 10px; }
+  .mini-web-reserve a { flex: 1; text-align: center; padding: 12px; border-radius: 12px; font-weight: 700; font-size: 13.5px; text-decoration: none; }
+  .mini-web-reserve a.whatsapp { background: #25D366; color: #06341f; }
+  .mini-web-reserve a.call { background: var(--accent); color: #fff; }
+  .mini-web-gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 4px; }
+  .mini-web-gallery img { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 10px; cursor: zoom-in; }
+  .mini-web-review { padding: 8px 0; border-top: 1px solid #f0ece4; }
+  .mini-web-review:first-child { border-top: none; padding-top: 0; }
+  .mini-web-review-stars { color: #f5a623; font-size: 13px; letter-spacing: 1px; }
+  .mini-web-review-text { font-size: 13px; color: var(--muted); line-height: 1.4; margin-top: 2px; font-style: italic; }
+  .mini-web-review-name { font-size: 11.5px; font-weight: 700; color: var(--text); margin-top: 3px; }
+
+  /* Hero de la mini-web: foto de portada (primera foto de galería, o el
+     logo si no hay galería, o un degradado del color de marca si no hay
+     ninguna imagen) con el nombre, la nota REAL de Google, la localidad
+     y dos botones de acción grandes. Es lo primero que ve alguien que
+     entra sin página propia — sustituye a lo que antes era solo texto
+     plano. */
+  .mw-hero { position: relative; margin: 0 auto; max-width: 900px; border-radius: 0 0 20px 20px; overflow: hidden; min-height: 260px; display: flex; align-items: flex-end; background: linear-gradient(135deg, var(--accent), #2b2320); background-size: cover; background-position: center; color: #fff; }
+  .mw-hero-overlay { width: 100%; padding: 26px 18px 22px; background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.78) 100%); }
+  .mw-hero-rating { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.18); backdrop-filter: blur(4px); padding: 4px 12px; border-radius: 999px; font-size: 12.5px; font-weight: 700; margin-bottom: 10px; }
+  .mw-hero-rating .stars { color: #f5a623; letter-spacing: 1px; }
+  .mw-hero-title { font-size: 25px; font-weight: 800; margin: 0 0 4px; text-shadow: 0 2px 10px rgba(0,0,0,0.45); }
+  .mw-hero-locality { font-size: 13.5px; opacity: 0.92; margin-bottom: 16px; text-shadow: 0 1px 6px rgba(0,0,0,0.4); }
+  .mw-hero-cta { display: flex; gap: 10px; flex-wrap: wrap; }
+  .mw-hero-cta a { flex: 1; min-width: 130px; text-align: center; padding: 12px 14px; border-radius: 12px; font-weight: 700; font-size: 13.5px; text-decoration: none; }
+  .mw-hero-cta a.primary { background: var(--accent); color: #fff; }
+  .mw-hero-cta a.whatsapp { background: #25D366; color: #06341f; }
+  @media (min-width: 860px) {
+    .mw-hero { min-height: 360px; margin-top: 14px; }
+    .mw-hero-title { font-size: 34px; }
+  }
+
+  /* Selector de sucursal: pastilla pequeña bajo el nombre de la empresa
+     (solo aparece si hay más de una sucursal con dirección propia) para
+     saltar a la carta/mini-web de otra sucursal sin salir de la
+     experiencia, tanto desde el menú digital como desde la mini-web. */
+  .header-switcher { position: relative; display: inline-block; margin-top: 3px; }
+  .switcher-btn { display: inline-flex; align-items: center; gap: 4px; background: rgba(255,255,255,0.16); color: #fff; border: none; border-radius: 999px; font-size: 10.5px; font-weight: 700; padding: 3px 10px; }
+
+  /* Insignia de la nota de Google en la cabecera ("★★★★★ 4.8/5 en
+     Google · 638 reseñas") — solo para sucursales con la mini-web
+     avanzada activada (branches.advanced_web_enabled); el resto sigue
+     viendo solo el nombre, como hasta ahora. */
+  .rating-badge { display: inline-flex; align-items: center; gap: 5px; margin-top: 3px; font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.92); }
+  .rating-badge .stars { color: #f5a623; letter-spacing: 1px; font-size: 11.5px; }
+
+  /* Menú de navegación "como cualquier web normal": barra con enlaces a
+     las secciones de la mini-web avanzada. En escritorio se ve entera;
+     en móvil se colapsa en un botón de hamburguesa que despliega la
+     misma lista (ver renderSiteNav). Solo aparece si
+     advanced_web_enabled es true. */
+  .site-nav { background: #fff; border-bottom: 1px solid #eee; position: sticky; top: 0; z-index: 19; }
+  .site-nav-inner { max-width: 900px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; padding: 0 12px; }
+  .site-nav-links { display: none; gap: 4px; }
+  .site-nav-links a { padding: 13px 12px; font-size: 13px; font-weight: 700; color: var(--text); text-decoration: none; border-bottom: 2px solid transparent; }
+  .site-nav-links a:hover, .site-nav-links a:focus-visible { color: var(--accent); border-bottom-color: var(--accent); }
+  .site-nav-toggle { display: flex; align-items: center; gap: 6px; border: none; background: none; padding: 13px 4px; font-size: 13px; font-weight: 700; color: var(--text); }
+  .site-nav-dropdown { display: none; flex-direction: column; background: #fff; border-top: 1px solid #eee; padding: 4px 12px 8px; }
+  .site-nav-dropdown.open { display: flex; }
+  .site-nav-dropdown a { padding: 11px 4px; font-size: 13.5px; font-weight: 600; color: var(--text); text-decoration: none; border-bottom: 1px solid #f3efe8; }
+  .site-nav-dropdown a:last-child { border-bottom: none; }
+  @media (min-width: 640px) {
+    .site-nav-links { display: flex; }
+    .site-nav-toggle { display: none; }
+  }
+  .switcher-menu { position: absolute; left: 50%; transform: translateX(-50%) translateY(8px); top: 100%; background: #fff; border-radius: 12px; box-shadow: 0 10px 28px rgba(0,0,0,0.28); padding: 6px; width: 220px; max-height: 60vh; overflow-y: auto; z-index: 30; opacity: 0; pointer-events: none; transition: opacity 0.15s; }
+  .switcher-menu.open { opacity: 1; pointer-events: auto; }
+  .switcher-menu a { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; font-size: 13px; font-weight: 600; color: var(--text); text-decoration: none; }
+  .switcher-menu a:hover, .switcher-menu a:focus-visible { background: var(--accent-soft); color: var(--accent); }
+  .switcher-menu img { width: 24px; height: 24px; border-radius: 6px; object-fit: cover; background: #eee; flex-shrink: 0; }
+  .switcher-menu .switcher-initial { width: 24px; height: 24px; border-radius: 6px; background: var(--accent-soft); color: var(--accent); font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+  .empty, .loading { text-align: center; padding: 60px 20px; color: var(--muted); }
+
+  @media (min-width: 860px) {
+    .layout { flex-direction: row; align-items: flex-start; max-width: 1100px; margin: 0 auto; }
+    .categories { flex-direction: column; overflow-x: visible; width: 230px; flex-shrink: 0; padding: 16px 12px; position: sticky; top: 60px; border-bottom: none; border-right: 1px solid #eee; height: calc(100vh - 60px); }
+    .categories button { text-align: left; border-radius: 10px; padding: 12px 14px; }
+    .category-section { scroll-margin-top: 72px; }
+    .grid { grid-template-columns: repeat(3, 1fr); }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="header-inner">
+    <img id="logoImg" class="logo" style="display:none" alt="">
+    <div class="header-text">
+      <h1 id="companyName">Menú</h1>
+      <div class="branch" id="branchName" style="display:none"></div>
+      <div class="rating-badge" id="ratingBadge" style="display:none"></div>
+      <div class="contact-links" id="contactLinks" style="display:none"></div>
+      <div class="header-switcher" id="branchSwitcher" style="display:none"></div>
+    </div>
+  </div>
+</header>
+<nav class="site-nav" id="siteNav" style="display:none" aria-label="Secciones de la página">
+  <div class="site-nav-inner">
+    <div class="site-nav-links" id="siteNavLinks"></div>
+    <button class="site-nav-toggle" id="siteNavToggleBtn" type="button" aria-haspopup="true" aria-expanded="false">☰ Menú</button>
+  </div>
+  <div class="site-nav-dropdown" id="siteNavDropdown"></div>
+</nav>
+<div id="miniWeb" style="display:none"></div>
+<div class="layout">
+  <nav class="categories" id="categories" aria-label="Categorías del menú"></nav>
+  <main id="main"><div class="loading">Cargando menú…</div></main>
+</div>
+<div class="lang-picker">
+  <button class="lang-btn" id="langBtn" type="button" aria-label="Elegir idioma" aria-haspopup="true" aria-expanded="false">🌐</button>
+  <div class="lang-menu" id="langMenu" role="menu"></div>
+</div>
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-sheet" id="modalSheet" role="dialog" aria-modal="true" aria-label="Ficha del plato" tabindex="-1"></div>
+</div>
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Foto ampliada">
+  <button class="lightbox-close" id="lightboxClose" aria-label="Cerrar">✕</button>
+  <img id="lightboxImg" src="" alt="">
+</div>
+<div class="rate-fab" id="rateFab" style="display:none">
+  <button class="rate-fab-btn" id="rateFabBtn" type="button">⭐ <span id="rateFabLabel">Valóranos</span></button>
+</div>
+<div class="rate-overlay" id="rateOverlay">
+  <div class="rate-sheet" id="rateSheet" role="dialog" aria-modal="true" aria-label="Valóranos" tabindex="-1"></div>
+</div>
+<script>
+  var SUPABASE_URL = 'https://losbulvhmemptrdjygpu.supabase.co';
+  var ANON_KEY = 'sb_publishable_PqNnPS4GKsdJDSn2JtI1oQ_ecsozI1R';
+  // Orden pedido: inglés primero, español segundo, el resto detrás.
+  var LANGS = {
+    "en": "English",
+    "es": "Español",
+    "it": "Italiano",
+    "pt": "Português",
+    "da": "Dansk",
+    "th": "ภาษาไทย",
+    "ru": "Русский",
+    "fr": "Français",
+    "de": "Deutsch",
+    "zh": "中文"
+  };
+  // Bandera por idioma, para el menú de selección (icono de mundo).
+  var LANG_FLAGS = {
+    en: "🇬🇧", es: "🇪🇸", it: "🇮🇹", pt: "🇵🇹", da: "🇩🇰",
+    th: "🇹🇭", ru: "🇷🇺", fr: "🇫🇷", de: "🇩🇪", zh: "🇨🇳"
+  };
+  // Etiquetas de plato: icono + texto por idioma (con fallback a español).
+  var TAG_META = {
+    picante:      { icon: '🌶️', es: 'Picante',      en: 'Spicy' },
+    vegetariano:  { icon: '🌱', es: 'Vegetariano',  en: 'Vegetarian' },
+    vegano:       { icon: '🌿', es: 'Vegano',       en: 'Vegan' },
+    sin_gluten:   { icon: '🌾', es: 'Sin gluten',   en: 'Gluten-free' },
+    recomendado:  { icon: '⭐', es: 'Recomendado',  en: 'Recommended' },
+    nuevo:        { icon: '✨', es: 'Nuevo',        en: 'New' }
+  };
+  // Los 14 alérgenos de declaración obligatoria en la UE (Reglamento
+  // 1169/2011) — es información legal, no decorativa, así que se pinta
+  // siempre igual de clara aunque no haya traducción completa a los 9
+  // idiomas: se usa español/inglés y se cae a español si el idioma
+  // actual no está en el diccionario (igual que el resto del menú).
+  var ALLERGEN_META = {
+    gluten:         { icon: '🌾', es: 'Gluten',        en: 'Gluten' },
+    crustaceos:     { icon: '🦐', es: 'Crustáceos',    en: 'Crustaceans' },
+    huevos:         { icon: '🥚', es: 'Huevo',         en: 'Egg' },
+    pescado:        { icon: '🐟', es: 'Pescado',       en: 'Fish' },
+    cacahuetes:     { icon: '🥜', es: 'Cacahuetes',    en: 'Peanuts' },
+    soja:           { icon: '🫛', es: 'Soja',          en: 'Soy' },
+    lacteos:        { icon: '🥛', es: 'Lácteos',       en: 'Dairy' },
+    frutos_cascara: { icon: '🌰', es: 'Frutos secos',  en: 'Tree nuts' },
+    apio:           { icon: '🥬', es: 'Apio',          en: 'Celery' },
+    mostaza:        { icon: '🟡', es: 'Mostaza',       en: 'Mustard' },
+    sesamo:         { icon: '⚪', es: 'Sésamo',        en: 'Sesame' },
+    sulfitos:       { icon: '🍷', es: 'Sulfitos',      en: 'Sulphites' },
+    altramuces:     { icon: '🫘', es: 'Altramuces',    en: 'Lupin' },
+    moluscos:       { icon: '🐚', es: 'Moluscos',      en: 'Molluscs' }
+  };
+  var ALLERGEN_LEGEND_TITLE = { es: 'Alérgenos (Reglamento UE 1169/2011)', en: 'Allergens (EU Regulation 1169/2011)', it: 'Allergeni (Regolamento UE 1169/2011)', pt: 'Alergénios (Regulamento UE 1169/2011)', fr: 'Allergènes (Règlement UE 1169/2011)', de: 'Allergene (EU-Verordnung 1169/2011)', da: 'Allergener (EU-forordning 1169/2011)', th: 'สารก่อภูมิแพ้ (ระเบียบสหภาพยุโรป 1169/2011)', ru: 'Аллергены (Регламент ЕС 1169/2011)', zh: '过敏原(欧盟法规1169/2011)' };
+  var BESTSELLER_LABELS = { es: '★ Más vendidos', en: '★ Best sellers', it: '★ I più venduti', pt: '★ Mais vendidos', fr: '★ Meilleures ventes', de: '★ Bestseller', da: '★ Bedst sælgende', th: '★ ขายดีที่สุด', ru: '★ Хиты продаж', zh: '★ 畅销菜品' };
+  var BESTSELLER_CATEGORY = '__bestsellers__';
+  var CATEGORY_I18N = {};
+  var ITEMS = [];
+  var CATEGORY_ORDER = [];
+  var selectedCategory = null;
+
+  // "Valóranos": el cliente elige a quién le atendió y deja 1-5
+  // estrellas + comentario opcional (ver submit-employee-rating). Se
+  // traduce a los mismos 10 idiomas que el resto del menú (ver LANGS más
+  // abajo) para que no cambie de idioma a mitad de la experiencia.
+  var RATE_LABELS = {
+    fabLabel:  { es: 'Valóranos', en: 'Rate us', it: 'Valutaci', pt: 'Avalie-nos', fr: 'Notez-nous', de: 'Bewerten', da: 'Bedøm os', th: 'ให้คะแนนเรา', ru: 'Оцените нас', zh: '给我们评分' },
+    pickTitle: { es: '¿Quién te atendió?', en: 'Who served you?', it: 'Chi ti ha servito?', pt: 'Quem te atendeu?', fr: 'Qui vous a servi ?', de: 'Wer hat bedient?', da: 'Hvem betjente dig?', th: 'ใครเป็นคนดูแลคุณ?', ru: 'Кто вас обслуживал?', zh: '是谁为您服务的?' },
+    pickSub:   { es: 'Elige a tu camarero/a para valorarle', en: 'Choose who served you to rate them', it: 'Scegli chi ti ha servito per valutarlo', pt: 'Escolha quem te atendeu para avaliar', fr: 'Choisissez qui vous a servi pour le noter', de: 'Wähle, wer dich bedient hat', da: 'Vælg din tjener for at bedømme dem', th: 'เลือกพนักงานที่ดูแลคุณเพื่อให้คะแนน', ru: 'Выберите официанта, чтобы оценить его', zh: '选择为您服务的员工进行评分' },
+    rateSub:   { es: '¿Cómo lo hizo?', en: 'How did they do?', it: "Com'è andata?", pt: 'Como foi o atendimento?', fr: "Comment était le service ?", de: 'Wie war der Service?', da: 'Hvordan klarede de det?', th: 'บริการเป็นอย่างไรบ้าง?', ru: 'Как он справился?', zh: '服务怎么样?' },
+    commentPh: { es: 'Cuéntanos más (opcional)', en: 'Tell us more (optional)', it: 'Raccontaci di più (facoltativo)', pt: 'Conte-nos mais (opcional)', fr: 'Dites-nous en plus (facultatif)', de: 'Erzähl uns mehr (optional)', da: 'Fortæl os mere (valgfrit)', th: 'บอกเราเพิ่มเติม (ไม่บังคับ)', ru: 'Расскажите подробнее (необязательно)', zh: '告诉我们更多(可选)' },
+    submit:    { es: 'Enviar valoración', en: 'Submit rating', it: 'Invia valutazione', pt: 'Enviar avaliação', fr: 'Envoyer la note', de: 'Bewertung senden', da: 'Send bedømmelse', th: 'ส่งคะแนน', ru: 'Отправить оценку', zh: '提交评分' },
+    sending:   { es: 'Enviando…', en: 'Sending…', it: 'Invio…', pt: 'Enviando…', fr: 'Envoi…', de: 'Senden…', da: 'Sender…', th: 'กำลังส่ง…', ru: 'Отправка…', zh: '发送中…' },
+    error:     { es: 'No se pudo enviar. Inténtalo de nuevo.', en: "Couldn't send it. Please try again.", it: 'Invio non riuscito. Riprova.', pt: 'Não foi possível enviar. Tente novamente.', fr: "Échec de l'envoi. Réessayez.", de: 'Senden fehlgeschlagen. Bitte erneut versuchen.', da: 'Kunne ikke sendes. Prøv igen.', th: 'ส่งไม่สำเร็จ กรุณาลองอีกครั้ง', ru: 'Не удалось отправить. Попробуйте снова.', zh: '发送失败,请重试。' },
+    thanks:    { es: '¡Gracias por tu valoración!', en: 'Thanks for your rating!', it: 'Grazie per la tua valutazione!', pt: 'Obrigado pela sua avaliação!', fr: 'Merci pour votre avis !', de: 'Danke für deine Bewertung!', da: 'Tak for din bedømmelse!', th: 'ขอบคุณสำหรับการให้คะแนน!', ru: 'Спасибо за вашу оценку!', zh: '感谢您的评分!' },
+    reviewTitle: { es: '¡Nos alegra mucho! 🎉', en: "We're thrilled! 🎉", it: 'Che gioia! 🎉', pt: 'Que alegria! 🎉', fr: 'Quel plaisir ! 🎉', de: 'Das freut uns sehr! 🎉', da: 'Det glæder os meget! 🎉', th: 'เรายินดีมาก! 🎉', ru: 'Мы очень рады! 🎉', zh: '我们非常高兴!🎉' },
+    reviewSub:   { es: '¿Nos dejarías también una reseña en Google? Nos ayuda muchísimo.', en: 'Would you also leave us a Google review? It helps us a lot.', it: 'Ci lasceresti anche una recensione su Google? Ci aiuta molto.', pt: 'Deixaria também uma avaliação no Google? Ajuda-nos muito.', fr: 'Laisseriez-vous aussi un avis sur Google ? Cela nous aide beaucoup.', de: 'Würdest du uns auch bei Google bewerten? Das hilft uns sehr.', da: 'Vil du også give os en anmeldelse på Google? Det hjælper os meget.', th: 'คุณช่วยรีวิวเราบน Google ด้วยได้ไหม? ช่วยเราได้มากเลย', ru: 'Оставите нам отзыв в Google? Это очень нам поможет.', zh: '您愿意在Google上给我们留下评价吗?这对我们帮助很大。' },
+    reviewCta:   { es: 'Escribir reseña en Google', en: 'Write a Google review', it: 'Scrivi una recensione su Google', pt: 'Escrever avaliação no Google', fr: 'Écrire un avis sur Google', de: 'Google-Bewertung schreiben', da: 'Skriv en Google-anmeldelse', th: 'เขียนรีวิวใน Google', ru: 'Написать отзыв в Google', zh: '撰写Google评价' },
+    reviewSkip:  { es: 'Ahora no', en: 'Not now', it: 'Non ora', pt: 'Agora não', fr: 'Pas maintenant', de: 'Nicht jetzt', da: 'Ikke nu', th: 'ไว้ทีหลัง', ru: 'Не сейчас', zh: '暂不' },
+  };
+  function rateLabel(key) {
+    var entry = RATE_LABELS[key];
+    if (!entry) return '';
+    return entry[current] || entry.es;
+  }
+  var STAFF = [];
+  // Enlace de "pedir reseña" de Google de esta sucursal (lo pega el dueño
+  // en Valery, ver CompanyBranch.google_review_url) — si existe, a quien
+  // valore con 5 estrellas se le invita también a dejar reseña pública.
+  var GOOGLE_REVIEW_URL = null;
+  var selectedStaff = null;
+  var selectedStars = 0;
+
+  var params = new URLSearchParams(location.search);
+  var companyId = params.get('company_id');
+  var storeId = params.get('store_id');
+
+  // Subdominio por sucursal (ej. elbodegon.valery.menu) en vez de
+  // ?company_id=...&store_id=...: si la página no trae company_id en la
+  // URL (los QRs/enlaces viejos de GitHub Pages siguen funcionando
+  // igual) y el dominio tiene más de 2 partes y no es github.io/
+  // localhost, la primera parte del dominio es el slug de la sucursal
+  // (branches.slug) — ver public-menu, que lo resuelve a company_id/
+  // store_id del lado del servidor. ?slug=... también funciona a mano
+  // para pruebas, sea cual sea el dominio.
+  var hostParts = location.hostname.split('.');
+  var isBareHost = location.hostname === 'localhost' || location.hostname.endsWith('.github.io') || hostParts.length <= 2;
+  var slug = params.get('slug') || ((!companyId && !isBareHost && hostParts.length > 2) ? hostParts[0] : null) || 'el-bodegon';
+
+  // Base del enlace para saltar a OTRA sucursal (selector de sucursales):
+  // quita el último segmento de la ruta actual, sea cual sea su forma
+  // ('/valery-menu/' con ?slug=..., o '/valery-menu/el-bodegon' con la
+  // URL bonita) — así el enlace siempre apunta a la carpeta del sitio
+  // con un solo '?slug=' nuevo, sin arrastrar el de la sucursal actual.
+  var basePath = location.pathname.replace(/[^/]*$/, '');
+
+  var stored = null;
+  try { stored = localStorage.getItem('menuLang'); } catch (e) {}
+  var current = stored && LANGS[stored] ? stored : (navigator.language || 'en').slice(0, 2);
+  if (!LANGS[current]) current = 'en';
+  // Para que un lector de pantalla pronuncie el contenido en el idioma
+  // correcto (y no siempre en español, que es lo que decía el <html>
+  // por defecto) — se vuelve a actualizar cada vez que se cambia de
+  // idioma desde el menú de banderas.
+  document.documentElement.lang = current;
+
+  function fieldFor(item, prefix) {
+    var v = item[prefix + '_' + current];
+    if (v && String(v).trim().length > 0) return v;
+    return item[prefix + '_es'] || '';
+  }
+
+  function tagLabel(tag) {
+    var meta = TAG_META[tag];
+    if (!meta) return null;
+    var text = meta[current] || meta.es;
+    return meta.icon + ' ' + text;
+  }
+
+  function allergenLabel(allergen) {
+    var meta = ALLERGEN_META[allergen];
+    if (!meta) return null;
+    var text = meta[current] || meta.es;
+    return meta.icon + ' ' + text;
+  }
+
+  // "Sopas" -> "Soups" si ya se tradujo esa categoría (ver
+  // menu_category_translations / botón "Traducir categorías" en la
+  // app); si no hay traducción todavía, se muestra en español en vez de
+  // dejar la sección sin título.
+  function categoryLabel(cat) {
+    if (cat === BESTSELLER_CATEGORY) return BESTSELLER_LABELS[current] || BESTSELLER_LABELS.es;
+    var i18n = CATEGORY_I18N[cat];
+    if (i18n && i18n[current] && String(i18n[current]).trim().length > 0) return i18n[current];
+    return cat;
+  }
+
+  function slugify(cat) {
+    return 'cat-' + cat.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  }
+
+  // Convierte un color hex (#RRGGBB) en un tinte translúcido para usarlo
+  // como fondo suave (categorías, etiquetas) a juego con el color de
+  // marca de cada sucursal — si no hay color válido, se deja el rojo por
+  // defecto que ya tenía el menú.
+  function applyThemeColor(hex) {
+    if (!hex || !/^#[0-9a-fA-F]{6}$/.test(hex)) return;
+    document.documentElement.style.setProperty('--accent', hex);
+    var r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+    document.documentElement.style.setProperty('--accent-soft', 'rgba(' + r + ',' + g + ',' + b + ',0.12)');
+  }
+
+  // Mini-web avanzada: colores de fondo/texto propios (si la sucursal los
+  // definió y tiene advanced_web_enabled activado) en vez de los de la
+  // plantilla por defecto. applyThemeColor (color principal/acento) sigue
+  // aplicándose siempre, para todas las sucursales, como hasta ahora.
+  function applyCustomPalette(data) {
+    if (!data.advanced_web_enabled) return;
+    if (data.bg_color && /^#[0-9a-fA-F]{6}$/.test(data.bg_color)) {
+      document.documentElement.style.setProperty('--bg', data.bg_color);
+    }
+    if (data.text_color && /^#[0-9a-fA-F]{6}$/.test(data.text_color)) {
+      document.documentElement.style.setProperty('--text', data.text_color);
+    }
+  }
+
+  // Insignia de la nota de Google en la cabecera ("★★★★★ 4.8/5 en Google
+  // · 638 reseñas") — solo en la mini-web avanzada; el resto de
+  // sucursales sigue sin mostrarla ahí (aunque siga apareciendo en el
+  // hero de la mini-web básica).
+  function renderRatingBadge(data) {
+    var badge = document.getElementById('ratingBadge');
+    badge.innerHTML = '';
+    if (!data.advanced_web_enabled || typeof data.rating_avg !== 'number' || !(data.rating_count > 0)) {
+      badge.style.display = 'none';
+      return;
+    }
+    var rounded = Math.round(data.rating_avg);
+    var stars = document.createElement('span');
+    stars.className = 'stars';
+    stars.textContent = '★'.repeat(rounded) + '☆'.repeat(5 - rounded);
+    badge.appendChild(stars);
+    var text = document.createElement('span');
+    text.textContent = data.rating_avg.toFixed(1) + '/5 en Google · ' + data.rating_count + ' reseñas';
+    badge.appendChild(text);
+    badge.style.display = 'inline-flex';
+  }
+
+  // Menú de navegación "como cualquier web normal" — solo para la
+  // mini-web avanzada. Enlaces por anclas a las secciones que existan de
+  // verdad (si la sucursal no tiene galería, por ejemplo, no se ofrece
+  // ese enlace). En móvil se colapsa en un botón de hamburguesa con
+  // desplegable (igual que el selector de idioma, pero hacia abajo).
+  function renderSiteNav(data) {
+    var nav = document.getElementById('siteNav');
+    var linksWrap = document.getElementById('siteNavLinks');
+    var dropdown = document.getElementById('siteNavDropdown');
+    linksWrap.innerHTML = '';
+    dropdown.innerHTML = '';
+
+    if (!data.advanced_web_enabled || data.website_url) { nav.style.display = 'none'; return; }
+
+    var sections = [];
+    sections.push({ href: '#mwHero', label: '🏠 Inicio' });
+    if (ITEMS.length) sections.push({ href: '#main', label: '🍽️ Carta' });
+    if (Array.isArray(data.gallery_photos) && data.gallery_photos.length) sections.push({ href: '#mwGallery', label: '📸 Galería' });
+    if (Array.isArray(data.reviews_highlight) && data.reviews_highlight.length) sections.push({ href: '#mwReviews', label: '⭐ Reseñas' });
+    if (data.address || data.city || data.opening_hours || data.phone) sections.push({ href: '#mwContact', label: '📍 Contacto' });
+
+    if (sections.length < 2) { nav.style.display = 'none'; return; }
+
+    function scrollToSection(e, href) {
+      var el = document.querySelector(href);
+      if (!el) return;
+      e.preventDefault();
+      el.scrollIntoView({ behavior: 'smooth' });
+      dropdown.classList.remove('open');
+      document.getElementById('siteNavToggleBtn').setAttribute('aria-expanded', 'false');
+    }
+
+    sections.forEach(function (s) {
+      var a1 = document.createElement('a');
+      a1.href = s.href;
+      a1.textContent = s.label;
+      a1.onclick = function (e) { scrollToSection(e, s.href); };
+      linksWrap.appendChild(a1);
+
+      var a2 = document.createElement('a');
+      a2.href = s.href;
+      a2.textContent = s.label;
+      a2.onclick = function (e) { scrollToSection(e, s.href); };
+      dropdown.appendChild(a2);
+    });
+
+    nav.style.display = 'block';
+  }
+
+  // La barra de categorías (y el punto donde "engancha" el scroll-spy) da
+  // por hecho que justo encima solo hay la cabecera — con el menú de
+  // navegación de la mini-web avanzada metido entre medias, hay que
+  // correr ese punto hacia abajo lo que mida la barra de navegación, o
+  // se queda tapada debajo. Se mide de verdad en vez de usar un número
+  // fijo, porque la altura de la cabecera varía (con/sin sucursal,
+  // con/sin botones de contacto, etc.).
+  function adjustStickyOffsets() {
+    var header = document.querySelector('header');
+    var nav = document.getElementById('siteNav');
+    var categories = document.getElementById('categories');
+    if (!header || !categories) return;
+    var offset = header.offsetHeight + ((nav && nav.style.display !== 'none') ? nav.offsetHeight : 0);
+    categories.style.top = offset + 'px';
+    document.querySelectorAll('.category-section').forEach(function (sec) {
+      sec.style.scrollMarginTop = (offset + 24) + 'px';
+    });
+  }
+  window.addEventListener('resize', adjustStickyOffsets);
+
+  document.getElementById('siteNavToggleBtn').addEventListener('click', function () {
+    var dropdown = document.getElementById('siteNavDropdown');
+    var willOpen = !dropdown.classList.contains('open');
+    dropdown.classList.toggle('open');
+    this.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+  });
+
+  function renderContactLinks(phone) {
+    var wrap = document.getElementById('contactLinks');
+    wrap.innerHTML = '';
+    if (!phone) { wrap.style.display = 'none'; return; }
+    var digits = String(phone).replace(/[^0-9+]/g, '');
+    var call = document.createElement('a');
+    call.href = 'tel:' + digits;
+    call.textContent = '📞 Llamar';
+    wrap.appendChild(call);
+    var wa = document.createElement('a');
+    wa.className = 'whatsapp';
+    wa.href = 'https://wa.me/' + digits.replace('+', '');
+    wa.target = '_blank';
+    wa.rel = 'noopener';
+    wa.textContent = '💬 WhatsApp';
+    wrap.appendChild(wa);
+    wrap.style.display = 'flex';
+  }
+
+  // Antes era un <select> nativo con los nombres en texto — ahora es un
+  // icono de mundo que abre un menú propio con bandera + nombre de cada
+  // idioma, más compacto en la cabecera y más fácil de reconocer de un
+  // vistazo (sobre todo para un cliente extranjero que no lee español).
+  function renderLangs() {
+    var btn = document.getElementById('langBtn');
+    var menu = document.getElementById('langMenu');
+    menu.innerHTML = '';
+
+    Object.keys(LANGS).forEach(function (code) {
+      var item = document.createElement('button');
+      item.type = 'button';
+      item.setAttribute('role', 'menuitem');
+      item.className = code === current ? 'active' : '';
+      if (code === current) item.setAttribute('aria-current', 'true');
+      var flag = document.createElement('span');
+      flag.className = 'flag';
+      flag.setAttribute('aria-hidden', 'true');
+      flag.textContent = LANG_FLAGS[code] || '🏳️';
+      var label = document.createElement('span');
+      label.textContent = LANGS[code];
+      item.appendChild(flag);
+      item.appendChild(label);
+      item.onclick = function () {
+        current = code;
+        try { localStorage.setItem('menuLang', current); } catch (e) {}
+        document.documentElement.lang = current;
+        closeLangMenu();
+        // Antes solo se refrescaba renderContent(): los títulos de sección
+        // cambiaban de idioma pero los botones de categoría (barra
+        // superior/lateral) se quedaban con el texto del idioma anterior
+        // porque los pinta una función aparte, renderCategoryNav().
+        renderLangs();
+        renderCategoryNav();
+        renderContent();
+        renderRateFab();
+      };
+      menu.appendChild(item);
+    });
+
+    btn.onclick = function (e) {
+      e.stopPropagation();
+      var willOpen = !menu.classList.contains('open');
+      menu.classList.toggle('open');
+      btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+      if (willOpen) {
+        var firstItem = menu.querySelector('button');
+        if (firstItem) firstItem.focus();
+      }
+    };
+  }
+
+  // Selector de sucursales: aparece bajo el nombre de empresa cuando
+  // public-menu devuelve "siblings" (otras sucursales de la misma
+  // empresa que ya tienen slug propio) — permite saltar de la carta/
+  // mini-web de una sucursal a otra sin volver atrás ni buscar el
+  // enlace. Funciona igual estés viendo el menú digital o la mini-web,
+  // porque vive en la cabecera, que es común a las dos vistas.
+  function renderBranchSwitcher(siblings) {
+    var wrap = document.getElementById('branchSwitcher');
+    wrap.innerHTML = '';
+    if (!Array.isArray(siblings) || !siblings.length) { wrap.style.display = 'none'; return; }
+
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'switcher-btn';
+    btn.setAttribute('aria-haspopup', 'true');
+    btn.setAttribute('aria-expanded', 'false');
+    btn.textContent = '🏠 Otras sucursales ▾';
+    wrap.appendChild(btn);
+
+    var menu = document.createElement('div');
+    menu.className = 'switcher-menu';
+    menu.setAttribute('role', 'menu');
+    siblings.forEach(function (s) {
+      if (!s || !s.slug) return;
+      var a = document.createElement('a');
+      a.href = basePath + '?slug=' + encodeURIComponent(s.slug);
+      a.setAttribute('role', 'menuitem');
+      if (s.logo_url) {
+        var img = document.createElement('img');
+        img.src = s.logo_url;
+        img.alt = '';
+        img.loading = 'lazy';
+        a.appendChild(img);
+      } else {
+        var initial = document.createElement('span');
+        initial.className = 'switcher-initial';
+        initial.textContent = (s.name || '?').trim().charAt(0).toUpperCase();
+        a.appendChild(initial);
+      }
+      var label = document.createElement('span');
+      label.textContent = s.name || '';
+      a.appendChild(label);
+      menu.appendChild(a);
+    });
+    wrap.appendChild(menu);
+
+    btn.onclick = function (e) {
+      e.stopPropagation();
+      var willOpen = !menu.classList.contains('open');
+      menu.classList.toggle('open');
+      btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+    };
+
+    wrap.style.display = 'inline-block';
+  }
+
+  document.addEventListener('click', function (e) {
+    var wrap = document.getElementById('branchSwitcher');
+    if (wrap && !wrap.contains(e.target)) {
+      var menu = wrap.querySelector('.switcher-menu');
+      if (menu) menu.classList.remove('open');
+    }
+  });
+
+  function closeLangMenu() {
+    var menu = document.getElementById('langMenu');
+    var btn = document.getElementById('langBtn');
+    if (menu) menu.classList.remove('open');
+    if (btn) btn.setAttribute('aria-expanded', 'false');
+  }
+
+  // Tocar fuera del menú (o desplazar la página) lo cierra, igual que
+  // cualquier desplegable nativo — sin esto se quedaba abierto encima
+  // del contenido hasta volver a tocar el icono de mundo.
+  document.addEventListener('click', function (e) {
+    var picker = document.querySelector('.lang-picker');
+    if (picker && !picker.contains(e.target)) closeLangMenu();
+  });
+  window.addEventListener('scroll', closeLangMenu, { passive: true });
+
+  function renderCategoryNav() {
+    var nav = document.getElementById('categories');
+    nav.innerHTML = '';
+    CATEGORY_ORDER.forEach(function (cat) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = categoryLabel(cat);
+      btn.dataset.category = cat;
+      if (cat === selectedCategory) { btn.className = 'active'; btn.setAttribute('aria-current', 'true'); }
+      btn.onclick = function () {
+        // Antes esto solo hacía scroll y esperaba a que el listener de
+        // scroll (updateActiveFromScroll) detectara sola la sección
+        // activa — pero si la categoría es la última de la carta y le
+        // sobra poco contenido debajo, la página nunca puede desplazarse
+        // lo suficiente para que su título cruce la línea de referencia,
+        // así que el scroll-spy se quedaba pensando que seguías en la
+        // categoría anterior (ej. tocabas "Carnes" y resaltaba "Arroz").
+        // Ahora se marca activa AL TOCAR, sin depender de dónde termine
+        // el scroll, y se ignoran los eventos de scroll durante la
+        // animación para que no se pise con el resaltado automático.
+        selectedCategory = cat;
+        highlightActiveCategory();
+        suppressScrollSpyUntil = Date.now() + 700;
+        var section = document.getElementById(slugify(cat));
+        if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      };
+      nav.appendChild(btn);
+    });
+  }
+
+  function highlightActiveCategory() {
+    var buttons = document.querySelectorAll('#categories button');
+    buttons.forEach(function (btn) {
+      if (btn.dataset.category === selectedCategory) {
+        btn.classList.add('active');
+        btn.setAttribute('aria-current', 'true');
+        // Mantiene el botón activo visible dentro de la barra scrollable en móvil.
+        if (window.innerWidth < 860 && btn.scrollIntoView) {
+          btn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        }
+      } else {
+        btn.classList.remove('active');
+        btn.removeAttribute('aria-current');
+      }
+    });
+  }
+
+  function buildCard(item) {
+    var card = document.createElement('div');
+    card.className = 'card' + (item.is_bestseller ? ' bestseller' : '');
+
+    // Hasta 5 fotos por plato (principal + hasta 4 extra, ver
+    // extra_photos en la app): con más de una se pinta un carrusel
+    // deslizable con puntos indicadores; con una sola o ninguna, se
+    // mantiene el comportamiento de siempre (imagen fija o placeholder).
+    var images = Array.isArray(item.images) && item.images.length ? item.images : (item.image_url ? [item.image_url] : []);
+    if (images.length > 1) {
+      var carousel = document.createElement('div');
+      carousel.className = 'thumb-carousel';
+      var scroller = document.createElement('div');
+      scroller.className = 'thumb-scroll';
+      images.forEach(function (src) {
+        var img = document.createElement('img');
+        img.src = src;
+        img.loading = 'lazy';
+        img.alt = fieldFor(item, 'name') || '';
+        scroller.appendChild(img);
+      });
+      carousel.appendChild(scroller);
+
+      var dots = document.createElement('div');
+      dots.className = 'thumb-dots';
+      images.forEach(function (_, i) {
+        var dot = document.createElement('span');
+        dot.className = 'thumb-dot' + (i === 0 ? ' active' : '');
+        dots.appendChild(dot);
+      });
+      carousel.appendChild(dots);
+
+      scroller.addEventListener('scroll', function () {
+        var idx = Math.round(scroller.scrollLeft / Math.max(scroller.clientWidth, 1));
+        Array.prototype.forEach.call(dots.children, function (dot, i) {
+          dot.classList.toggle('active', i === idx);
+        });
+      }, { passive: true });
+
+      card.appendChild(carousel);
+    } else if (images.length === 1) {
+      var img = document.createElement('img');
+      img.className = 'thumb';
+      img.src = images[0];
+      img.loading = 'lazy';
+      img.alt = fieldFor(item, 'name') || '';
+      card.appendChild(img);
+    } else {
+      var ph = document.createElement('div');
+      ph.className = 'thumb-placeholder';
+      ph.setAttribute('aria-hidden', 'true');
+      ph.textContent = (fieldFor(item, 'name') || '?').charAt(0).toUpperCase();
+      card.appendChild(ph);
+    }
+
+    var body = document.createElement('div');
+    body.className = 'card-body';
+
+    var tags = Array.isArray(item.tags) ? item.tags.slice() : [];
+    if (item.is_bestseller) tags = ['recomendado'].concat(tags);
+    var tagLabels = tags.map(tagLabel).filter(Boolean);
+    if (tagLabels.length) {
+      var tagsWrap = document.createElement('div');
+      tagsWrap.className = 'card-tags';
+      tagLabels.forEach(function (label) {
+        var chip = document.createElement('span');
+        chip.className = 'card-tag';
+        chip.textContent = label;
+        tagsWrap.appendChild(chip);
+      });
+      body.appendChild(tagsWrap);
+    }
+
+    var name = document.createElement('div');
+    name.className = 'card-name';
+    name.textContent = fieldFor(item, 'name');
+    body.appendChild(name);
+
+    var allergenLabels = (Array.isArray(item.allergens) ? item.allergens : []).map(allergenLabel).filter(Boolean);
+    if (allergenLabels.length) {
+      var allergensWrap = document.createElement('div');
+      allergensWrap.className = 'card-allergens';
+      allergenLabels.forEach(function (label) {
+        var badge = document.createElement('span');
+        badge.className = 'card-allergen';
+        badge.textContent = label;
+        allergensWrap.appendChild(badge);
+      });
+      body.appendChild(allergensWrap);
+    }
+
+    var desc = fieldFor(item, 'description');
+    if (desc) {
+      var descEl = document.createElement('div');
+      descEl.className = 'card-desc';
+      descEl.textContent = desc;
+      body.appendChild(descEl);
+    }
+
+    if (item.price !== null && item.price !== undefined) {
+      var price = document.createElement('div');
+      price.className = 'card-price';
+      price.textContent = Number(item.price).toFixed(2).replace('.', ',') + ' €';
+      body.appendChild(price);
+    }
+
+    card.appendChild(body);
+    // Clic en cualquier parte de la tarjeta abre la ficha grande del
+    // producto — incluso si el clic cae encima del carrusel de fotos,
+    // porque un arrastre real para deslizar entre fotos no dispara
+    // "click" en los navegadores (solo un toque suelto lo hace).
+    card.addEventListener('click', function () { openDetail(item); });
+    // Accesibilidad: la tarjeta es un <div>, así que sin esto quedaba
+    // invisible para quien navega con teclado o lector de pantalla (no
+    // se podía llegar a ella con Tab ni activarla sin un ratón/dedo).
+    card.tabIndex = 0;
+    card.setAttribute('role', 'button');
+    var priceLabel = (item.price !== null && item.price !== undefined) ? ', ' + Number(item.price).toFixed(2).replace('.', ',') + ' euros' : '';
+    card.setAttribute('aria-label', 'Ver ficha de ' + (fieldFor(item, 'name') || 'plato') + priceLabel);
+    card.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        openDetail(item);
+      }
+    });
+    return card;
+  }
+
+  // Ficha de producto: mismo contenido que la tarjeta pero en grande,
+  // con la foto ampliable y la descripción completa sin recortar.
+  function openDetail(item) {
+    var images = Array.isArray(item.images) && item.images.length ? item.images : (item.image_url ? [item.image_url] : []);
+    var sheet = document.getElementById('modalSheet');
+    sheet.innerHTML = '';
+
+    var closeBtn = document.createElement('button');
+    closeBtn.className = 'modal-close';
+    closeBtn.textContent = '✕';
+    closeBtn.setAttribute('aria-label', 'Cerrar');
+    closeBtn.onclick = closeDetail;
+    sheet.appendChild(closeBtn);
+
+    if (images.length) {
+      var carousel = document.createElement('div');
+      carousel.className = 'modal-carousel';
+      var scroller = document.createElement('div');
+      scroller.className = 'modal-scroll';
+      images.forEach(function (src) {
+        var img = document.createElement('img');
+        img.src = src;
+        img.loading = 'lazy';
+        img.alt = fieldFor(item, 'name') || '';
+        img.setAttribute('role', 'button');
+        img.tabIndex = 0;
+        img.setAttribute('aria-label', 'Ampliar foto de ' + (fieldFor(item, 'name') || 'el plato'));
+        img.addEventListener('click', function (e) {
+          e.stopPropagation();
+          openLightbox(src, fieldFor(item, 'name'));
+        });
+        img.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            e.stopPropagation();
+            openLightbox(src, fieldFor(item, 'name'));
+          }
+        });
+        scroller.appendChild(img);
+      });
+      carousel.appendChild(scroller);
+      if (images.length > 1) {
+        var dots = document.createElement('div');
+        dots.className = 'modal-dots';
+        images.forEach(function (_, i) {
+          var dot = document.createElement('span');
+          dot.className = 'modal-dot' + (i === 0 ? ' active' : '');
+          dots.appendChild(dot);
+        });
+        carousel.appendChild(dots);
+        scroller.addEventListener('scroll', function () {
+          var idx = Math.round(scroller.scrollLeft / Math.max(scroller.clientWidth, 1));
+          Array.prototype.forEach.call(dots.children, function (dot, i) {
+            dot.classList.toggle('active', i === idx);
+          });
+        }, { passive: true });
+      }
+      sheet.appendChild(carousel);
+    } else {
+      var ph = document.createElement('div');
+      ph.className = 'modal-placeholder';
+      ph.setAttribute('aria-hidden', 'true');
+      ph.textContent = (fieldFor(item, 'name') || '?').charAt(0).toUpperCase();
+      sheet.appendChild(ph);
+    }
+
+    var body = document.createElement('div');
+    body.className = 'modal-body';
+
+    var tags = Array.isArray(item.tags) ? item.tags.slice() : [];
+    if (item.is_bestseller) tags = ['recomendado'].concat(tags);
+    var tagLabels = tags.map(tagLabel).filter(Boolean);
+    if (tagLabels.length) {
+      var tagsWrap = document.createElement('div');
+      tagsWrap.className = 'modal-tags';
+      tagLabels.forEach(function (label) {
+        var chip = document.createElement('span');
+        chip.className = 'card-tag';
+        chip.textContent = label;
+        tagsWrap.appendChild(chip);
+      });
+      body.appendChild(tagsWrap);
+    }
+
+    var name = document.createElement('div');
+    name.className = 'modal-name';
+    name.textContent = fieldFor(item, 'name');
+    body.appendChild(name);
+
+    var allergenLabels = (Array.isArray(item.allergens) ? item.allergens : []).map(allergenLabel).filter(Boolean);
+    if (allergenLabels.length) {
+      var allergensWrap = document.createElement('div');
+      allergensWrap.className = 'modal-allergens';
+      allergenLabels.forEach(function (label) {
+        var badge = document.createElement('span');
+        badge.className = 'card-allergen';
+        badge.textContent = label;
+        allergensWrap.appendChild(badge);
+      });
+      body.appendChild(allergensWrap);
+    }
+
+    var desc = fieldFor(item, 'description');
+    if (desc) {
+      var descEl = document.createElement('div');
+      descEl.className = 'modal-desc';
+      descEl.textContent = desc;
+      body.appendChild(descEl);
+    }
+
+    if (item.price !== null && item.price !== undefined) {
+      var price = document.createElement('div');
+      price.className = 'modal-price';
+      price.textContent = Number(item.price).toFixed(2).replace('.', ',') + ' €';
+      body.appendChild(price);
+    }
+
+    sheet.appendChild(body);
+    sheet.setAttribute('aria-label', fieldFor(item, 'name') || 'Ficha del plato');
+
+    // Accesibilidad: guarda qué elemento tenía el foco (la tarjeta que
+    // se tocó) para devolvérselo al cerrar, y mueve el foco dentro de la
+    // ficha al abrirla — si no, un lector de pantalla o quien navega con
+    // teclado se queda "perdido" sobre un fondo oscurecido sin saber que
+    // se abrió algo nuevo.
+    lastFocusedBeforeModal = document.activeElement;
+    document.getElementById('modalOverlay').classList.add('open');
+    document.body.classList.add('modal-open');
+    closeBtn.focus();
+  }
+
+  var lastFocusedBeforeModal = null;
+  function closeDetail() {
+    document.getElementById('modalOverlay').classList.remove('open');
+    document.body.classList.remove('modal-open');
+    if (lastFocusedBeforeModal && lastFocusedBeforeModal.focus) lastFocusedBeforeModal.focus();
+  }
+
+  document.getElementById('modalOverlay').addEventListener('click', function (e) {
+    if (e.target.id === 'modalOverlay') closeDetail();
+  });
+
+  // Tecla Escape cierra lo que esté abierto — la foto ampliada primero
+  // (si está encima de todo), luego la ficha, luego el menú de idioma.
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    if (document.getElementById('lightbox').classList.contains('open')) { closeLightbox(); return; }
+    if (document.getElementById('modalOverlay').classList.contains('open')) { closeDetail(); return; }
+    if (document.getElementById('rateOverlay').classList.contains('open')) { closeRateOverlay(); return; }
+    closeLangMenu();
+  });
+
+  // Zoom real de la foto (pellizcar con los dedos): la página entera ya
+  // permite pellizcar para ampliar (accesibilidad — antes lo bloqueaba
+  // un maximum-scale=1 en el <meta viewport>), así que aquí solo hace
+  // falta mostrar la foto a pantalla completa; el zoom en sí lo da el
+  // propio navegador.
+  var lastFocusedBeforeLightbox = null;
+  function openLightbox(src, altText) {
+    var img = document.getElementById('lightboxImg');
+    img.src = src;
+    img.alt = altText || '';
+    lastFocusedBeforeLightbox = document.activeElement;
+    document.getElementById('lightbox').classList.add('open');
+    document.getElementById('lightboxClose').focus();
+  }
+  function closeLightbox() {
+    document.getElementById('lightbox').classList.remove('open');
+    if (lastFocusedBeforeLightbox && lastFocusedBeforeLightbox.focus) lastFocusedBeforeLightbox.focus();
+  }
+  document.getElementById('lightboxClose').addEventListener('click', function (e) {
+    e.stopPropagation();
+    closeLightbox();
+  });
+  document.getElementById('lightbox').addEventListener('click', function (e) {
+    if (e.target.id === 'lightbox') closeLightbox();
+  });
+
+  // MARK: - "Valóranos" (valorar al camarero/a que atendió)
+  function initialOf(name) {
+    return (name || '?').trim().charAt(0).toUpperCase();
+  }
+
+  function staffPhotoNode(person, variant) {
+    // variant: 'staff' (foto pequeña, rejilla de selección) o 'selected'
+    // (foto grande, pantalla de poner las estrellas).
+    var wrap = document.createElement('div');
+    if (person.photo_url) {
+      wrap.className = variant === 'selected' ? 'rate-selected-avatar' : 'rate-staff-avatar';
+      var img = document.createElement('img');
+      img.src = person.photo_url;
+      img.alt = person.name || '';
+      img.loading = 'lazy';
+      wrap.appendChild(img);
+    } else {
+      wrap.className = variant === 'selected' ? 'rate-selected-avatar-fallback' : 'rate-staff-avatar-fallback';
+      var initial = document.createElement('span');
+      initial.className = variant === 'selected' ? 'rate-selected-initial' : 'rate-staff-initial';
+      initial.textContent = initialOf(person.name);
+      wrap.appendChild(initial);
+    }
+    return wrap;
+  }
+
+  function renderRateFab() {
+    var fab = document.getElementById('rateFab');
+    document.getElementById('rateFabLabel').textContent = rateLabel('fabLabel');
+    fab.style.display = STAFF.length ? '' : 'none';
+  }
+
+  document.getElementById('rateFabBtn').addEventListener('click', openStaffPicker);
+
+  function openRateOverlay() {
+    lastFocusedBeforeRate = document.activeElement;
+    document.getElementById('rateOverlay').classList.add('open');
+    document.body.classList.add('modal-open');
+  }
+  function closeRateOverlay() {
+    document.getElementById('rateOverlay').classList.remove('open');
+    document.body.classList.remove('modal-open');
+    if (lastFocusedBeforeRate && lastFocusedBeforeRate.focus) lastFocusedBeforeRate.focus();
+  }
+  var lastFocusedBeforeRate = null;
+
+  document.getElementById('rateOverlay').addEventListener('click', function (e) {
+    if (e.target.id === 'rateOverlay') closeRateOverlay();
+  });
+
+  function openStaffPicker() {
+    selectedStaff = null;
+    selectedStars = 0;
+    var sheet = document.getElementById('rateSheet');
+    sheet.innerHTML = '';
+
+    var closeBtn = document.createElement('button');
+    closeBtn.className = 'rate-close';
+    closeBtn.textContent = '✕';
+    closeBtn.setAttribute('aria-label', 'Cerrar');
+    closeBtn.onclick = closeRateOverlay;
+    sheet.appendChild(closeBtn);
+
+    var title = document.createElement('div');
+    title.className = 'rate-title';
+    title.textContent = rateLabel('pickTitle');
+    sheet.appendChild(title);
+
+    var sub = document.createElement('div');
+    sub.className = 'rate-subtitle';
+    sub.textContent = rateLabel('pickSub');
+    sheet.appendChild(sub);
+
+    var grid = document.createElement('div');
+    grid.className = 'rate-staff-grid';
+    STAFF.forEach(function (person) {
+      var item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'rate-staff-item';
+      item.appendChild(staffPhotoNode(person, 'staff'));
+      if (person.show_name !== false) {
+        var name = document.createElement('span');
+        name.className = 'rate-staff-name';
+        name.textContent = person.name || '';
+        item.appendChild(name);
+      }
+      item.onclick = function () { openRatingSheet(person); };
+      grid.appendChild(item);
+    });
+    sheet.appendChild(grid);
+
+    openRateOverlay();
+    closeBtn.focus();
+  }
+
+  function openRatingSheet(person) {
+    selectedStaff = person;
+    selectedStars = 0;
+    var sheet = document.getElementById('rateSheet');
+    sheet.innerHTML = '';
+
+    var closeBtn = document.createElement('button');
+    closeBtn.className = 'rate-close';
+    closeBtn.textContent = '✕';
+    closeBtn.setAttribute('aria-label', 'Cerrar');
+    closeBtn.onclick = closeRateOverlay;
+    sheet.appendChild(closeBtn);
+
+    var selected = document.createElement('div');
+    selected.className = 'rate-selected';
+    selected.appendChild(staffPhotoNode(person, 'selected'));
+    if (person.show_name !== false) {
+      var name = document.createElement('div');
+      name.className = 'rate-selected-name';
+      name.textContent = person.name || '';
+      selected.appendChild(name);
+    }
+    var sub = document.createElement('div');
+    sub.className = 'rate-subtitle';
+    sub.style.marginBottom = '0';
+    sub.textContent = rateLabel('rateSub');
+    selected.appendChild(sub);
+    sheet.appendChild(selected);
+
+    var stars = document.createElement('div');
+    stars.className = 'rate-stars';
+    for (var i = 1; i <= 5; i++) {
+      (function (value) {
+        var starBtn = document.createElement('button');
+        starBtn.type = 'button';
+        starBtn.className = 'rate-star-btn';
+        starBtn.textContent = '★';
+        starBtn.setAttribute('aria-label', value + ' estrellas');
+        starBtn.onclick = function () {
+          selectedStars = value;
+          Array.prototype.forEach.call(stars.children, function (btn, idx) {
+            btn.classList.toggle('filled', idx < value);
+          });
+          submitBtn.disabled = false;
+        };
+        stars.appendChild(starBtn);
+      })(i);
+    }
+    sheet.appendChild(stars);
+
+    var comment = document.createElement('textarea');
+    comment.className = 'rate-comment';
+    comment.placeholder = rateLabel('commentPh');
+    comment.maxLength = 500;
+    sheet.appendChild(comment);
+
+    var errorEl = document.createElement('div');
+    errorEl.className = 'rate-error';
+    errorEl.style.display = 'none';
+    sheet.appendChild(errorEl);
+
+    var submitBtn = document.createElement('button');
+    submitBtn.type = 'button';
+    submitBtn.className = 'rate-submit';
+    submitBtn.textContent = rateLabel('submit');
+    submitBtn.disabled = true;
+    submitBtn.onclick = function () {
+      if (!selectedStars) return;
+      submitBtn.disabled = true;
+      submitBtn.textContent = rateLabel('sending');
+      errorEl.style.display = 'none';
+
+      var apiUrl = SUPABASE_URL + '/functions/v1/submit-employee-rating';
+      fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: ANON_KEY, Authorization: 'Bearer ' + ANON_KEY },
+        body: JSON.stringify({
+          company_id: companyId,
+          store_id: storeId || null,
+          employee_id: person.id,
+          stars: selectedStars,
+          comment: comment.value.trim() || null,
+        }),
+      })
+        .then(function (res) { return res.json().then(function (data) { return { ok: res.ok, data: data }; }); })
+        .then(function (result) {
+          if (!result.ok || result.data.error) throw new Error(result.data.error || 'error');
+          if (selectedStars === 5 && GOOGLE_REVIEW_URL) {
+            showGoogleReviewPrompt();
+          } else {
+            showThanks();
+          }
+        })
+        .catch(function () {
+          submitBtn.disabled = false;
+          submitBtn.textContent = rateLabel('submit');
+          errorEl.textContent = rateLabel('error');
+          errorEl.style.display = '';
+        });
+    };
+    sheet.appendChild(submitBtn);
+
+    closeBtn.focus();
+  }
+
+  function showThanks() {
+    var sheet = document.getElementById('rateSheet');
+    sheet.innerHTML = '';
+    var closeBtn = document.createElement('button');
+    closeBtn.className = 'rate-close';
+    closeBtn.textContent = '✕';
+    closeBtn.setAttribute('aria-label', 'Cerrar');
+    closeBtn.onclick = closeRateOverlay;
+    sheet.appendChild(closeBtn);
+
+    var box = document.createElement('div');
+    box.className = 'rate-thanks';
+    var icon = document.createElement('div');
+    icon.className = 'rate-thanks-icon';
+    icon.textContent = '🎉';
+    box.appendChild(icon);
+    var text = document.createElement('div');
+    text.className = 'rate-thanks-text';
+    text.textContent = rateLabel('thanks');
+    box.appendChild(text);
+    sheet.appendChild(box);
+
+    setTimeout(closeRateOverlay, 1800);
+  }
+
+  // Cuando la valoración es de 5 estrellas y la sucursal tiene configurado
+  // un enlace de reseñas de Google (ver GOOGLE_REVIEW_URL), en vez del
+  // agradecimiento normal se muestra esta pantalla invitando a dejar
+  // también una reseña pública — no se cierra sola, para no cortar al
+  // usuario mientras decide si pulsar el enlace.
+  function showGoogleReviewPrompt() {
+    var sheet = document.getElementById('rateSheet');
+    sheet.innerHTML = '';
+    var closeBtn = document.createElement('button');
+    closeBtn.className = 'rate-close';
+    closeBtn.textContent = '✕';
+    closeBtn.setAttribute('aria-label', 'Cerrar');
+    closeBtn.onclick = closeRateOverlay;
+    sheet.appendChild(closeBtn);
+
+    var box = document.createElement('div');
+    box.className = 'rate-thanks';
+    var icon = document.createElement('div');
+    icon.className = 'rate-thanks-icon';
+    icon.textContent = '🎉';
+    box.appendChild(icon);
+    var text = document.createElement('div');
+    text.className = 'rate-thanks-text';
+    text.textContent = rateLabel('reviewTitle');
+    box.appendChild(text);
+    var sub = document.createElement('div');
+    sub.className = 'rate-review-sub';
+    sub.textContent = rateLabel('reviewSub');
+    box.appendChild(sub);
+
+    var cta = document.createElement('a');
+    cta.className = 'rate-review-cta';
+    cta.href = GOOGLE_REVIEW_URL;
+    cta.target = '_blank';
+    cta.rel = 'noopener noreferrer';
+    cta.textContent = rateLabel('reviewCta');
+    cta.onclick = function () { setTimeout(closeRateOverlay, 300); };
+    box.appendChild(cta);
+
+    var skip = document.createElement('button');
+    skip.type = 'button';
+    skip.className = 'rate-review-skip';
+    skip.textContent = rateLabel('reviewSkip');
+    skip.onclick = closeRateOverlay;
+    box.appendChild(skip);
+
+    sheet.appendChild(box);
+    closeBtn.focus();
+  }
+
+  // Todas las categorías se pintan seguidas, una tras otra, en una sola
+  // página continua (nada de filtrar/ocultar) — al llegar al final de una
+  // categoría se sigue directo con la siguiente sin ningún corte. La barra
+  // de categorías es solo un atajo para saltar de un salto a una sección,
+  // y se resalta sola según por dónde vas scrolleando (ver updateActiveFromScroll).
+  // "★ Más vendidos" (si hay) se pinta siempre primero, repitiendo ahí los
+  // platos más pedidos además de en su categoría normal — como la "carta
+  // recomendada" que suelen destacar los restaurantes físicos.
+  function renderContent() {
+    var main = document.getElementById('main');
+    main.innerHTML = '';
+
+    if (!ITEMS.length) {
+      var empty = document.createElement('div');
+      empty.className = 'empty';
+      empty.textContent = 'El menú todavía no tiene platos publicados.';
+      main.appendChild(empty);
+      return;
+    }
+
+    var byCategory = {};
+    ITEMS.forEach(function (item) {
+      var cat = item.category || 'General';
+      (byCategory[cat] = byCategory[cat] || []).push(item);
+    });
+    var bestsellers = ITEMS.filter(function (item) { return item.is_bestseller; });
+    if (bestsellers.length) byCategory[BESTSELLER_CATEGORY] = bestsellers;
+
+    CATEGORY_ORDER.forEach(function (cat) {
+      var section = document.createElement('section');
+      section.className = 'category-section';
+      section.id = slugify(cat);
+      section.dataset.category = cat;
+
+      var title = document.createElement('div');
+      title.className = 'category-title';
+      title.textContent = categoryLabel(cat);
+      section.appendChild(title);
+
+      var grid = document.createElement('div');
+      grid.className = 'grid';
+      (byCategory[cat] || []).forEach(function (item) { grid.appendChild(buildCard(item)); });
+      section.appendChild(grid);
+
+      main.appendChild(section);
+    });
+
+    var legend = buildAllergenLegend();
+    if (legend) main.appendChild(legend);
+
+    highlightActiveCategory();
+  }
+
+  // Leyenda de alérgenos al final de la página — solo se pinta si algún
+  // plato publicado tiene alguno marcado, para no meter ruido legal en
+  // cartas que todavía no los han rellenado.
+  function buildAllergenLegend() {
+    var used = {};
+    ITEMS.forEach(function (item) {
+      (Array.isArray(item.allergens) ? item.allergens : []).forEach(function (a) { used[a] = true; });
+    });
+    var keys = Object.keys(used);
+    if (!keys.length) return null;
+
+    var box = document.createElement('div');
+    box.className = 'allergen-legend';
+    var title = document.createElement('strong');
+    title.textContent = ALLERGEN_LEGEND_TITLE[current] || ALLERGEN_LEGEND_TITLE.es;
+    box.appendChild(title);
+    var itemsWrap = document.createElement('div');
+    itemsWrap.className = 'legend-items';
+    keys.forEach(function (key) {
+      var label = allergenLabel(key);
+      if (!label) return;
+      var span = document.createElement('span');
+      span.textContent = label;
+      itemsWrap.appendChild(span);
+    });
+    box.appendChild(itemsWrap);
+    return box;
+  }
+
+  var scrollTicking = false;
+  var suppressScrollSpyUntil = 0;
+  function updateActiveFromScroll() {
+    if (Date.now() < suppressScrollSpyUntil) return;
+    var refY = window.innerWidth >= 860 ? 100 : 130;
+    var sections = document.querySelectorAll('.category-section');
+    var current = null;
+    sections.forEach(function (sec) {
+      if (sec.getBoundingClientRect().top <= refY) current = sec;
+    });
+    if (!current) current = sections[0];
+    if (current && current.dataset.category !== selectedCategory) {
+      selectedCategory = current.dataset.category;
+      highlightActiveCategory();
+    }
+  }
+  window.addEventListener('scroll', function () {
+    if (!scrollTicking) {
+      window.requestAnimationFrame(function () { updateActiveFromScroll(); scrollTicking = false; });
+      scrollTicking = true;
+    }
+  }, { passive: true });
+
+  // SEO: meta description dinámica + datos estructurados (JSON-LD,
+  // schema.org Restaurant/FoodEstablishment + AggregateRating + Menu).
+  // Esta página es una SPA (no hay servidor que genere HTML por plato),
+  // pero Googlebot SÍ ejecuta JavaScript y lee el DOM final antes de
+  // indexar, así que inyectar esto por JS después de cargar los datos
+  // reales funciona igual que si viniera ya en el HTML. Se llama una vez
+  // por carga, justo después de recibir la respuesta de public-menu.
+  function upsertMeta(name, content) {
+    if (!content) return;
+    var el = document.querySelector('meta[name="' + name + '"]');
+    if (!el) {
+      el = document.createElement('meta');
+      el.setAttribute('name', name);
+      document.head.appendChild(el);
+    }
+    el.setAttribute('content', content);
+  }
+
+  function upsertJsonLd(id, obj) {
+    var el = document.getElementById(id);
+    if (!el) {
+      el = document.createElement('script');
+      el.type = 'application/ld+json';
+      el.id = id;
+      document.head.appendChild(el);
+    }
+    el.textContent = JSON.stringify(obj);
+  }
+
+  function applySeoMetadata(data, displayName) {
+    // --- Meta description: nombre + hasta 4 platos destacados + localidad ---
+    var highlightNames = ITEMS.slice(0, 4).map(function (it) { return fieldFor(it, 'name'); }).filter(Boolean);
+    var localityBit = data.city ? (' en ' + data.city) : '';
+    var descParts = [displayName + localityBit];
+    if (highlightNames.length) descParts.push('Platos: ' + highlightNames.join(', ') + '.');
+    upsertMeta('description', descParts.join('. ').slice(0, 300));
+
+    // --- JSON-LD: Restaurant/FoodEstablishment ---
+    var pageUrl = location.href.split('#')[0];
+    var restaurantSchema = {
+      '@context': 'https://schema.org',
+      '@type': 'Restaurant',
+      '@id': pageUrl,
+      name: displayName,
+      url: pageUrl
+    };
+    if (data.logo_url) restaurantSchema.image = data.logo_url;
+    if (data.phone) restaurantSchema.telephone = data.phone;
+    if (data.address || data.city || data.postal_code) {
+      restaurantSchema.address = {
+        '@type': 'PostalAddress',
+        streetAddress: data.address || undefined,
+        addressLocality: data.city || undefined,
+        postalCode: data.postal_code || undefined,
+        addressCountry: 'ES'
+      };
+    }
+    if (typeof data.rating_avg === 'number' && data.rating_count > 0) {
+      restaurantSchema.aggregateRating = {
+        '@type': 'AggregateRating',
+        ratingValue: Number(data.rating_avg.toFixed(1)),
+        reviewCount: data.rating_count
+      };
+    }
+
+    // --- JSON-LD: Menu / MenuItem, anidado dentro del restaurante ---
+    if (ITEMS.length) {
+      var menuSections = CATEGORY_ORDER.filter(function (c) { return c !== BESTSELLER_CATEGORY; }).map(function (cat) {
+        var sectionItems = ITEMS.filter(function (it) { return (it.category || 'General') === cat; });
+        return {
+          '@type': 'MenuSection',
+          name: cat,
+          hasMenuItem: sectionItems.map(function (it) {
+            var menuItem = {
+              '@type': 'MenuItem',
+              name: fieldFor(it, 'name')
+            };
+            var desc = fieldFor(it, 'description');
+            if (desc) menuItem.description = desc;
+            if (it.price !== null && it.price !== undefined) {
+              menuItem.offers = { '@type': 'Offer', price: Number(it.price).toFixed(2), priceCurrency: 'EUR' };
+            }
+            if (it.image_url) menuItem.image = it.image_url;
+            return menuItem;
+          })
+        };
+      });
+      restaurantSchema.hasMenu = {
+        '@type': 'Menu',
+        '@id': pageUrl + '#menu',
+        name: 'Menú de ' + displayName,
+        hasMenuSection: menuSections
+      };
+    }
+
+    upsertJsonLd('ld-restaurant', restaurantSchema);
+  }
+
+  // Hero de portada: foto de galería (o logo, o degradado de marca) +
+  // nombre + nota REAL de Google + localidad + botones de "Ver carta" /
+  // "Reservar". Es lo primero que ve el cliente al entrar en la
+  // mini-web, así que se construye siempre que no haya página propia,
+  // aunque todavía falten datos de contacto u horario.
+  function buildHero(data, displayName) {
+    var hero = document.createElement('div');
+    hero.className = 'mw-hero';
+    hero.id = 'mwHero';
+    var bgImage = (Array.isArray(data.gallery_photos) && data.gallery_photos[0]) || data.logo_url || null;
+    if (bgImage) hero.style.backgroundImage = 'url(' + bgImage + ')';
+
+    var overlay = document.createElement('div');
+    overlay.className = 'mw-hero-overlay';
+
+    if (typeof data.rating_avg === 'number' && data.rating_count > 0) {
+      var ratingChip = document.createElement('div');
+      ratingChip.className = 'mw-hero-rating';
+      var stars = document.createElement('span');
+      stars.className = 'stars';
+      var rounded = Math.round(data.rating_avg);
+      stars.textContent = '★'.repeat(rounded) + '☆'.repeat(5 - rounded);
+      ratingChip.appendChild(stars);
+      var ratingText = document.createElement('span');
+      ratingText.textContent = data.rating_avg.toFixed(1) + ' · ' + data.rating_count + ' reseñas en Google';
+      ratingChip.appendChild(ratingText);
+      overlay.appendChild(ratingChip);
+    }
+
+    var title = document.createElement('div');
+    title.className = 'mw-hero-title';
+    title.textContent = displayName;
+    overlay.appendChild(title);
+
+    if (data.city) {
+      var locality = document.createElement('div');
+      locality.className = 'mw-hero-locality';
+      locality.textContent = '📍 ' + data.city;
+      overlay.appendChild(locality);
+    }
+
+    var cta = document.createElement('div');
+    cta.className = 'mw-hero-cta';
+    var menuBtn = document.createElement('a');
+    menuBtn.className = 'primary';
+    menuBtn.href = '#main';
+    menuBtn.textContent = '🍽️ Ver carta';
+    menuBtn.onclick = function (e) {
+      e.preventDefault();
+      var main = document.getElementById('main');
+      if (main) main.scrollIntoView({ behavior: 'smooth' });
+    };
+    cta.appendChild(menuBtn);
+
+    if (data.phone) {
+      var digits = String(data.phone).replace(/[^0-9+]/g, '');
+      var waBtn = document.createElement('a');
+      waBtn.className = 'whatsapp';
+      waBtn.href = 'https://wa.me/' + digits.replace('+', '') + '?text=' + encodeURIComponent('Hola, quiero reservar en ' + displayName);
+      waBtn.target = '_blank';
+      waBtn.rel = 'noopener';
+      waBtn.textContent = '💬 Reservar';
+      cta.appendChild(waBtn);
+    }
+    overlay.appendChild(cta);
+
+    hero.appendChild(overlay);
+    return hero;
+  }
+
+  // Mini-web: solo para sucursales SIN página propia (website_url
+  // vacío) — hero de portada, contacto/horario/mapa, botón de reservar
+  // por WhatsApp o llamada, galería de fotos del local, y 2-3 reseñas
+  // reales destacadas. Se inserta entre la cabecera y el menú.
+  function renderMiniWeb(data, displayName) {
+    var wrap = document.getElementById('miniWeb');
+    if (data.website_url) { wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
+
+    wrap.innerHTML = '';
+    wrap.className = 'mini-web';
+    wrap.appendChild(buildHero(data, displayName));
+
+    var hasContact = data.address || data.city || data.opening_hours;
+    var hasGallery = Array.isArray(data.gallery_photos) && data.gallery_photos.length > 0;
+    var hasReviews = Array.isArray(data.reviews_highlight) && data.reviews_highlight.length > 0;
+
+    if (hasContact || data.phone) {
+      var contactSection = document.createElement('div');
+      contactSection.className = 'mini-web-section';
+      contactSection.id = 'mwContact';
+      var title = document.createElement('h2');
+      title.className = 'mini-web-title';
+      title.textContent = '📍 Visítanos';
+      contactSection.appendChild(title);
+
+      var addressParts = [data.address, data.postal_code, data.city].filter(Boolean);
+      if (addressParts.length) {
+        var addrRow = document.createElement('div');
+        addrRow.className = 'mini-web-row';
+        addrRow.textContent = addressParts.join(', ');
+        contactSection.appendChild(addrRow);
+
+        var mapLink = document.createElement('a');
+        mapLink.className = 'mini-web-map-link';
+        mapLink.href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(addressParts.join(', '));
+        mapLink.target = '_blank';
+        mapLink.rel = 'noopener';
+        mapLink.textContent = '🗺️ Cómo llegar';
+        contactSection.appendChild(mapLink);
+      }
+
+      if (data.opening_hours) {
+        var hoursRow = document.createElement('div');
+        hoursRow.className = 'mini-web-row mini-web-hours';
+        hoursRow.style.marginTop = addressParts.length ? '8px' : '0';
+        hoursRow.textContent = data.opening_hours;
+        contactSection.appendChild(hoursRow);
+      }
+
+      if (data.phone) {
+        var digits = String(data.phone).replace(/[^0-9+]/g, '');
+        var reserveRow = document.createElement('div');
+        reserveRow.className = 'mini-web-reserve';
+        var wa = document.createElement('a');
+        wa.className = 'whatsapp';
+        wa.href = 'https://wa.me/' + digits.replace('+', '') + '?text=' + encodeURIComponent('Hola, quiero reservar en ' + displayName);
+        wa.target = '_blank';
+        wa.rel = 'noopener';
+        wa.textContent = '💬 Reservar por WhatsApp';
+        var call = document.createElement('a');
+        call.className = 'call';
+        call.href = 'tel:' + digits;
+        call.textContent = '📞 Llamar para reservar';
+        reserveRow.appendChild(wa);
+        reserveRow.appendChild(call);
+        contactSection.appendChild(reserveRow);
+      }
+
+      wrap.appendChild(contactSection);
+    }
+
+    if (hasGallery) {
+      var gallerySection = document.createElement('div');
+      gallerySection.className = 'mini-web-section';
+      gallerySection.id = 'mwGallery';
+      var galleryTitle = document.createElement('h2');
+      galleryTitle.className = 'mini-web-title';
+      galleryTitle.textContent = '📸 El local';
+      gallerySection.appendChild(galleryTitle);
+
+      var grid = document.createElement('div');
+      grid.className = 'mini-web-gallery';
+      data.gallery_photos.slice(0, 9).forEach(function (src) {
+        var img = document.createElement('img');
+        img.src = src;
+        img.loading = 'lazy';
+        img.alt = displayName;
+        img.addEventListener('click', function () { openLightbox(src, displayName); });
+        grid.appendChild(img);
+      });
+      gallerySection.appendChild(grid);
+      wrap.appendChild(gallerySection);
+    }
+
+    if (hasReviews) {
+      var reviewsSection = document.createElement('div');
+      reviewsSection.className = 'mini-web-section';
+      reviewsSection.id = 'mwReviews';
+      var reviewsTitle = document.createElement('h2');
+      reviewsTitle.className = 'mini-web-title';
+      reviewsTitle.textContent = '⭐ Lo que dicen de nosotros';
+      reviewsSection.appendChild(reviewsTitle);
+
+      data.reviews_highlight.forEach(function (r) {
+        var item = document.createElement('div');
+        item.className = 'mini-web-review';
+        var stars = document.createElement('div');
+        stars.className = 'mini-web-review-stars';
+        stars.textContent = '★'.repeat(r.rating) + '☆'.repeat(5 - r.rating);
+        item.appendChild(stars);
+        var text = document.createElement('div');
+        text.className = 'mini-web-review-text';
+        text.textContent = '“' + r.comment + '”';
+        item.appendChild(text);
+        if (r.reviewer_name) {
+          var name = document.createElement('div');
+          name.className = 'mini-web-review-name';
+          name.textContent = '— ' + r.reviewer_name;
+          item.appendChild(name);
+        }
+        reviewsSection.appendChild(item);
+      });
+      wrap.appendChild(reviewsSection);
+    }
+
+    wrap.style.display = 'block';
+  }
+
+  if (!companyId && !slug) {
+    document.getElementById('main').innerHTML = '<div class="empty">Falta el identificador de la empresa en el enlace.</div>';
+  } else {
+    var apiUrl = slug
+      ? SUPABASE_URL + '/functions/v1/public-menu?slug=' + encodeURIComponent(slug)
+      : SUPABASE_URL + '/functions/v1/public-menu?company_id=' + encodeURIComponent(companyId);
+    if (!slug && storeId) apiUrl += '&store_id=' + encodeURIComponent(storeId);
+    // cache: 'no-store' + parámetro de fecha: algunos navegadores móviles
+    // (sobre todo Safari en iOS al escanear un QR) ignoran el
+    // Cache-Control: no-store que ya manda la función y sirven una copia
+    // vieja de la respuesta guardada en su caché HTTP. Añadir un
+    // parámetro que cambia en cada carga hace que la URL nunca coincida
+    // con nada cacheado, así que siempre pide el dato fresco de verdad.
+    apiUrl += (apiUrl.indexOf('?') === -1 ? '?' : '&') + '_=' + Date.now();
+
+    fetch(apiUrl, { cache: 'no-store', headers: { apikey: ANON_KEY, Authorization: 'Bearer ' + ANON_KEY } })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        data.advanced_web_enabled = true; // SOLO PARA ESTA VISTA PREVIA
+        if (data.error) {
+          document.getElementById('main').innerHTML = '<div class="empty">' + data.error + '</div>';
+          return;
+        }
+        // El título grande es la SUCURSAL (lo que quiere ver el cliente
+        // al escanear: "soy Fañabe", "soy El Bodegón"), no el nombre legal
+        // de la empresa — solo se cae al nombre de empresa si el enlace
+        // no trae sucursal (company_id sin store_id).
+        var displayName = data.branch_name || data.company_name || 'Menú';
+        document.title = displayName + ' · Menú';
+        document.getElementById('companyName').textContent = displayName;
+        document.getElementById('branchName').style.display = 'none';
+
+        applyThemeColor(data.theme_color);
+        applyCustomPalette(data);
+        renderRatingBadge(data);
+        renderContactLinks(data.phone);
+        var logoImg = document.getElementById('logoImg');
+        if (data.logo_url) {
+          logoImg.src = data.logo_url;
+          logoImg.alt = 'Logo de ' + displayName;
+          logoImg.style.display = 'block';
+        } else {
+          logoImg.style.display = 'none';
+        }
+
+        ITEMS = data.items || [];
+
+        CATEGORY_I18N = {};
+        ITEMS.forEach(function (item) {
+          var cat = item.category || 'General';
+          if (!CATEGORY_I18N[cat] && item.category_i18n) CATEGORY_I18N[cat] = item.category_i18n;
+        });
+
+        var seen = {};
+        CATEGORY_ORDER = [];
+        if (ITEMS.some(function (item) { return item.is_bestseller; })) {
+          CATEGORY_ORDER.push(BESTSELLER_CATEGORY);
+          seen[BESTSELLER_CATEGORY] = true;
+        }
+        ITEMS.forEach(function (item) {
+          var cat = item.category || 'General';
+          if (!seen[cat]) { seen[cat] = true; CATEGORY_ORDER.push(cat); }
+        });
+        selectedCategory = CATEGORY_ORDER[0] || null;
+
+        STAFF = Array.isArray(data.staff) ? data.staff.filter(function (p) { return p && p.id && p.name; }) : [];
+        GOOGLE_REVIEW_URL = data.google_review_url || null;
+
+        renderLangs();
+        renderCategoryNav();
+        renderContent();
+        renderRateFab();
+        renderBranchSwitcher(data.siblings);
+        renderSiteNav(data);
+        adjustStickyOffsets();
+        applySeoMetadata(data, displayName);
+        renderMiniWeb(data, displayName);
+      })
+      .catch(function () {
+        document.getElementById('main').innerHTML = '<div class="empty">No se pudo cargar el menú. Comprueba tu conexión.</div>';
+      });
+  }
+</script>
+</body>
+</html>
