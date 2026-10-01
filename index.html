@@ -220,6 +220,40 @@
   .mini-web-review-text { font-size: 13px; color: var(--muted); line-height: 1.4; margin-top: 2px; font-style: italic; }
   .mini-web-review-name { font-size: 11.5px; font-weight: 700; color: var(--text); margin-top: 3px; }
 
+  /* Hero de la mini-web: foto de portada (primera foto de galería, o el
+     logo si no hay galería, o un degradado del color de marca si no hay
+     ninguna imagen) con el nombre, la nota REAL de Google, la localidad
+     y dos botones de acción grandes. Es lo primero que ve alguien que
+     entra sin página propia — sustituye a lo que antes era solo texto
+     plano. */
+  .mw-hero { position: relative; margin: 0 auto; max-width: 900px; border-radius: 0 0 20px 20px; overflow: hidden; min-height: 260px; display: flex; align-items: flex-end; background: linear-gradient(135deg, var(--accent), #2b2320); background-size: cover; background-position: center; color: #fff; }
+  .mw-hero-overlay { width: 100%; padding: 26px 18px 22px; background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.78) 100%); }
+  .mw-hero-rating { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.18); backdrop-filter: blur(4px); padding: 4px 12px; border-radius: 999px; font-size: 12.5px; font-weight: 700; margin-bottom: 10px; }
+  .mw-hero-rating .stars { color: #f5a623; letter-spacing: 1px; }
+  .mw-hero-title { font-size: 25px; font-weight: 800; margin: 0 0 4px; text-shadow: 0 2px 10px rgba(0,0,0,0.45); }
+  .mw-hero-locality { font-size: 13.5px; opacity: 0.92; margin-bottom: 16px; text-shadow: 0 1px 6px rgba(0,0,0,0.4); }
+  .mw-hero-cta { display: flex; gap: 10px; flex-wrap: wrap; }
+  .mw-hero-cta a { flex: 1; min-width: 130px; text-align: center; padding: 12px 14px; border-radius: 12px; font-weight: 700; font-size: 13.5px; text-decoration: none; }
+  .mw-hero-cta a.primary { background: var(--accent); color: #fff; }
+  .mw-hero-cta a.whatsapp { background: #25D366; color: #06341f; }
+  @media (min-width: 860px) {
+    .mw-hero { min-height: 360px; margin-top: 14px; }
+    .mw-hero-title { font-size: 34px; }
+  }
+
+  /* Selector de sucursal: pastilla pequeña bajo el nombre de la empresa
+     (solo aparece si hay más de una sucursal con dirección propia) para
+     saltar a la carta/mini-web de otra sucursal sin salir de la
+     experiencia, tanto desde el menú digital como desde la mini-web. */
+  .header-switcher { position: relative; display: inline-block; margin-top: 3px; }
+  .switcher-btn { display: inline-flex; align-items: center; gap: 4px; background: rgba(255,255,255,0.16); color: #fff; border: none; border-radius: 999px; font-size: 10.5px; font-weight: 700; padding: 3px 10px; }
+  .switcher-menu { position: absolute; left: 50%; transform: translateX(-50%) translateY(8px); top: 100%; background: #fff; border-radius: 12px; box-shadow: 0 10px 28px rgba(0,0,0,0.28); padding: 6px; width: 220px; max-height: 60vh; overflow-y: auto; z-index: 30; opacity: 0; pointer-events: none; transition: opacity 0.15s; }
+  .switcher-menu.open { opacity: 1; pointer-events: auto; }
+  .switcher-menu a { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; font-size: 13px; font-weight: 600; color: var(--text); text-decoration: none; }
+  .switcher-menu a:hover, .switcher-menu a:focus-visible { background: var(--accent-soft); color: var(--accent); }
+  .switcher-menu img { width: 24px; height: 24px; border-radius: 6px; object-fit: cover; background: #eee; flex-shrink: 0; }
+  .switcher-menu .switcher-initial { width: 24px; height: 24px; border-radius: 6px; background: var(--accent-soft); color: var(--accent); font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
   .empty, .loading { text-align: center; padding: 60px 20px; color: var(--muted); }
 
   @media (min-width: 860px) {
@@ -239,6 +273,7 @@
       <h1 id="companyName">Menú</h1>
       <div class="branch" id="branchName" style="display:none"></div>
       <div class="contact-links" id="contactLinks" style="display:none"></div>
+      <div class="header-switcher" id="branchSwitcher" style="display:none"></div>
     </div>
   </div>
 </header>
@@ -371,6 +406,13 @@
   var isBareHost = location.hostname === 'localhost' || location.hostname.endsWith('.github.io') || hostParts.length <= 2;
   var slug = params.get('slug') || ((!companyId && !isBareHost && hostParts.length > 2) ? hostParts[0] : null);
 
+  // Base del enlace para saltar a OTRA sucursal (selector de sucursales):
+  // quita el último segmento de la ruta actual, sea cual sea su forma
+  // ('/valery-menu/' con ?slug=..., o '/valery-menu/el-bodegon' con la
+  // URL bonita) — así el enlace siempre apunta a la carpeta del sitio
+  // con un solo '?slug=' nuevo, sin arrastrar el de la sucursal actual.
+  var basePath = location.pathname.replace(/[^/]*$/, '');
+
   var stored = null;
   try { stored = localStorage.getItem('menuLang'); } catch (e) {}
   var current = stored && LANGS[stored] ? stored : (navigator.language || 'en').slice(0, 2);
@@ -497,6 +539,70 @@
       }
     };
   }
+
+  // Selector de sucursales: aparece bajo el nombre de empresa cuando
+  // public-menu devuelve "siblings" (otras sucursales de la misma
+  // empresa que ya tienen slug propio) — permite saltar de la carta/
+  // mini-web de una sucursal a otra sin volver atrás ni buscar el
+  // enlace. Funciona igual estés viendo el menú digital o la mini-web,
+  // porque vive en la cabecera, que es común a las dos vistas.
+  function renderBranchSwitcher(siblings) {
+    var wrap = document.getElementById('branchSwitcher');
+    wrap.innerHTML = '';
+    if (!Array.isArray(siblings) || !siblings.length) { wrap.style.display = 'none'; return; }
+
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'switcher-btn';
+    btn.setAttribute('aria-haspopup', 'true');
+    btn.setAttribute('aria-expanded', 'false');
+    btn.textContent = '🏠 Otras sucursales ▾';
+    wrap.appendChild(btn);
+
+    var menu = document.createElement('div');
+    menu.className = 'switcher-menu';
+    menu.setAttribute('role', 'menu');
+    siblings.forEach(function (s) {
+      if (!s || !s.slug) return;
+      var a = document.createElement('a');
+      a.href = basePath + '?slug=' + encodeURIComponent(s.slug);
+      a.setAttribute('role', 'menuitem');
+      if (s.logo_url) {
+        var img = document.createElement('img');
+        img.src = s.logo_url;
+        img.alt = '';
+        img.loading = 'lazy';
+        a.appendChild(img);
+      } else {
+        var initial = document.createElement('span');
+        initial.className = 'switcher-initial';
+        initial.textContent = (s.name || '?').trim().charAt(0).toUpperCase();
+        a.appendChild(initial);
+      }
+      var label = document.createElement('span');
+      label.textContent = s.name || '';
+      a.appendChild(label);
+      menu.appendChild(a);
+    });
+    wrap.appendChild(menu);
+
+    btn.onclick = function (e) {
+      e.stopPropagation();
+      var willOpen = !menu.classList.contains('open');
+      menu.classList.toggle('open');
+      btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+    };
+
+    wrap.style.display = 'inline-block';
+  }
+
+  document.addEventListener('click', function (e) {
+    var wrap = document.getElementById('branchSwitcher');
+    if (wrap && !wrap.contains(e.target)) {
+      var menu = wrap.querySelector('.switcher-menu');
+      if (menu) menu.classList.remove('open');
+    }
+  });
 
   function closeLangMenu() {
     var menu = document.getElementById('langMenu');
@@ -1345,21 +1451,90 @@
     upsertJsonLd('ld-restaurant', restaurantSchema);
   }
 
+  // Hero de portada: foto de galería (o logo, o degradado de marca) +
+  // nombre + nota REAL de Google + localidad + botones de "Ver carta" /
+  // "Reservar". Es lo primero que ve el cliente al entrar en la
+  // mini-web, así que se construye siempre que no haya página propia,
+  // aunque todavía falten datos de contacto u horario.
+  function buildHero(data, displayName) {
+    var hero = document.createElement('div');
+    hero.className = 'mw-hero';
+    var bgImage = (Array.isArray(data.gallery_photos) && data.gallery_photos[0]) || data.logo_url || null;
+    if (bgImage) hero.style.backgroundImage = 'url(' + bgImage + ')';
+
+    var overlay = document.createElement('div');
+    overlay.className = 'mw-hero-overlay';
+
+    if (typeof data.rating_avg === 'number' && data.rating_count > 0) {
+      var ratingChip = document.createElement('div');
+      ratingChip.className = 'mw-hero-rating';
+      var stars = document.createElement('span');
+      stars.className = 'stars';
+      var rounded = Math.round(data.rating_avg);
+      stars.textContent = '★'.repeat(rounded) + '☆'.repeat(5 - rounded);
+      ratingChip.appendChild(stars);
+      var ratingText = document.createElement('span');
+      ratingText.textContent = data.rating_avg.toFixed(1) + ' · ' + data.rating_count + ' reseñas en Google';
+      ratingChip.appendChild(ratingText);
+      overlay.appendChild(ratingChip);
+    }
+
+    var title = document.createElement('div');
+    title.className = 'mw-hero-title';
+    title.textContent = displayName;
+    overlay.appendChild(title);
+
+    if (data.city) {
+      var locality = document.createElement('div');
+      locality.className = 'mw-hero-locality';
+      locality.textContent = '📍 ' + data.city;
+      overlay.appendChild(locality);
+    }
+
+    var cta = document.createElement('div');
+    cta.className = 'mw-hero-cta';
+    var menuBtn = document.createElement('a');
+    menuBtn.className = 'primary';
+    menuBtn.href = '#main';
+    menuBtn.textContent = '🍽️ Ver carta';
+    menuBtn.onclick = function (e) {
+      e.preventDefault();
+      var main = document.getElementById('main');
+      if (main) main.scrollIntoView({ behavior: 'smooth' });
+    };
+    cta.appendChild(menuBtn);
+
+    if (data.phone) {
+      var digits = String(data.phone).replace(/[^0-9+]/g, '');
+      var waBtn = document.createElement('a');
+      waBtn.className = 'whatsapp';
+      waBtn.href = 'https://wa.me/' + digits.replace('+', '') + '?text=' + encodeURIComponent('Hola, quiero reservar en ' + displayName);
+      waBtn.target = '_blank';
+      waBtn.rel = 'noopener';
+      waBtn.textContent = '💬 Reservar';
+      cta.appendChild(waBtn);
+    }
+    overlay.appendChild(cta);
+
+    hero.appendChild(overlay);
+    return hero;
+  }
+
   // Mini-web: solo para sucursales SIN página propia (website_url
-  // vacío) — contacto/horario/mapa, botón de reservar por WhatsApp o
-  // llamada, galería de fotos del local, y 2-3 reseñas reales
-  // destacadas. Se inserta entre la cabecera y el menú.
+  // vacío) — hero de portada, contacto/horario/mapa, botón de reservar
+  // por WhatsApp o llamada, galería de fotos del local, y 2-3 reseñas
+  // reales destacadas. Se inserta entre la cabecera y el menú.
   function renderMiniWeb(data, displayName) {
     var wrap = document.getElementById('miniWeb');
     if (data.website_url) { wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
 
+    wrap.innerHTML = '';
+    wrap.className = 'mini-web';
+    wrap.appendChild(buildHero(data, displayName));
+
     var hasContact = data.address || data.city || data.opening_hours;
     var hasGallery = Array.isArray(data.gallery_photos) && data.gallery_photos.length > 0;
     var hasReviews = Array.isArray(data.reviews_highlight) && data.reviews_highlight.length > 0;
-    if (!hasContact && !hasGallery && !hasReviews && !data.phone) { wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
-
-    wrap.innerHTML = '';
-    wrap.className = 'mini-web';
 
     if (hasContact || data.phone) {
       var contactSection = document.createElement('div');
@@ -1539,6 +1714,7 @@
         renderCategoryNav();
         renderContent();
         renderRateFab();
+        renderBranchSwitcher(data.siblings);
         applySeoMetadata(data, displayName);
         renderMiniWeb(data, displayName);
       })
