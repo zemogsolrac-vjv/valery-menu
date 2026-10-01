@@ -286,14 +286,18 @@
      contenido, no se queda pegada a la pantalla. Fondo transparente
      (la foto del empleado ya viene recortada sin fondo al subirla). */
   .mw-chef-giant { position: absolute; top: 0; right: -12px; z-index: 6; display: flex; align-items: flex-start; gap: 6px; pointer-events: none; }
-  .mw-chef-giant-item { border: none; background: none; padding: 0; cursor: pointer; pointer-events: auto; }
-  /* "Casi toda la altura de la pantalla" (max-height) es el objetivo,
-     pero con un tope de ancho (max-width) para que nunca tape el resto
-     de la portada si la foto no es muy vertical — el navegador respeta
-     el que de los dos límites toque primero, manteniendo la proporción
-     real de la foto. Con una foto de cuerpo entero bien vertical, el
-     límite que manda es el de altura y se ve enorme de arriba abajo. */
-  .mw-chef-giant-item img { max-height: 85vh; max-width: 42vw; width: auto; height: auto; display: block; object-fit: contain; filter: drop-shadow(0 10px 18px rgba(0,0,0,0.35)); }
+  /* El marco (no la imagen) es quien manda en el tamaño: ancho/alto fijos
+     en vh/vw para que ocupe "casi toda la pantalla" al entrar, igual con
+     cualquier foto — y object-fit:cover recorta/hace zoom para que el
+     chef se vea grande y centrado en vez de dejar un montón de fondo
+     vacío alrededor (su foto es apaisada, con bastante margen a los
+     lados). No importa que tape texto de debajo: es el efecto buscado. */
+  .mw-chef-giant-item { border: none; background: none; padding: 0; cursor: pointer; pointer-events: auto; display: block; width: 58vw; height: 82vh; overflow: hidden; position: relative; }
+  .mw-chef-giant-item img { width: 100%; height: 100%; display: block; object-fit: cover; object-position: center 15%; filter: drop-shadow(0 10px 18px rgba(0,0,0,0.35)); }
+  /* Etiqueta genérica "Chef" (nunca el nombre real) superpuesta sobre la
+     esquina inferior de la foto — discreta, no un cartel grande. */
+  .mw-chef-giant-item { position: relative; }
+  .mw-chef-giant-badge { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); background: rgba(0,0,0,0.55); color: #fff; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; padding: 4px 11px; border-radius: 999px; backdrop-filter: blur(2px); }
 
   /* Página dedicada al chef: foto grande, nombre, biografía y sus platos
      marcados como "especialidad del chef" (misma tarjeta que el resto
@@ -2108,10 +2112,11 @@
   // toda la altura de la pantalla, por delante del resto de la web — pero
   // como hijos de #miniWeb (position:relative) con position:absolute, NO
   // position:fixed, así que al hacer scroll bajan con el resto de la
-  // página en vez de quedarse pegados a la pantalla. Toca la foto para
-  // ir a la página dedicada del chef (buildChefPage). Si ningún chef
-  // tiene foto, no se muestra nada (su página sigue accesible desde el
-  // menú de navegación).
+  // página en vez de quedarse pegados a la pantalla. No importa que la
+  // imagen tape texto de debajo (portada, reseñas...): es el efecto
+  // buscado. Al tocarla, se oculta (no lleva a ninguna página — la
+  // página dedicada del chef sigue accesible desde el menú de
+  // navegación). Si ningún chef tiene foto, no se muestra nada.
   function buildChefGiant(chefs) {
     var withPhoto = chefs.filter(function (c) { return c.photo_url; });
     if (!withPhoto.length) return null;
@@ -2122,12 +2127,16 @@
       var item = document.createElement('button');
       item.type = 'button';
       item.className = 'mw-chef-giant-item';
-      item.setAttribute('aria-label', c.name);
-      item.onclick = function () { showPage('chef'); };
+      item.setAttribute('aria-label', 'Chef');
+      item.onclick = function () { wrap.style.display = 'none'; };
       var img = document.createElement('img');
       img.src = c.photo_url;
-      img.alt = c.name;
+      img.alt = 'Chef';
       item.appendChild(img);
+      var badge = document.createElement('span');
+      badge.className = 'mw-chef-giant-badge';
+      badge.textContent = 'Chef';
+      item.appendChild(badge);
       wrap.appendChild(item);
     });
     return wrap;
