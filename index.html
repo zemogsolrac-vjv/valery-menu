@@ -221,6 +221,18 @@
   .mini-web-review-name { font-size: 11.5px; font-weight: 700; color: var(--text); margin-top: 3px; }
   .mw-map-frame { width: 100%; height: 220px; border: 0; border-radius: 12px; margin-top: 10px; display: block; }
 
+  /* Pie de página de la mini-web avanzada: nombre + dirección/teléfono
+     (NAP, bueno para el SEO local) + iconos de redes sociales (solo las
+     que el dueño haya rellenado) — vive dentro de #miniWeb así que
+     aparece siempre, sea cual sea la "página" activa (ver PAGE_GROUPS). */
+  .mw-footer { background: #2b2320; color: rgba(255,255,255,0.85); border-radius: 14px; padding: 22px 18px; margin: 4px 0 14px; text-align: center; }
+  .mw-footer-inner { max-width: 480px; margin: 0 auto; }
+  .mw-footer-name { font-size: 15px; font-weight: 700; color: #fff; margin-bottom: 6px; }
+  .mw-footer-row { font-size: 12.5px; color: rgba(255,255,255,0.72); margin-top: 4px; }
+  .mw-footer-social { display: flex; justify-content: center; gap: 16px; margin-top: 14px; }
+  .mw-footer-social a { font-size: 22px; text-decoration: none; line-height: 1; }
+  .mw-footer-copy { font-size: 11px; color: rgba(255,255,255,0.45); margin-top: 16px; }
+
   /* Hero de la mini-web: foto de portada (primera foto de galería, o el
      logo si no hay galería, o un degradado del color de marca si no hay
      ninguna imagen) con el nombre, la nota REAL de Google, la localidad
@@ -232,7 +244,8 @@
   .mw-hero-rating { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.18); backdrop-filter: blur(4px); padding: 4px 12px; border-radius: 999px; font-size: 12.5px; font-weight: 700; margin-bottom: 10px; }
   .mw-hero-rating .stars { color: #f5a623; letter-spacing: 1px; }
   .mw-hero-title { font-size: 25px; font-weight: 800; margin: 0 0 4px; text-shadow: 0 2px 10px rgba(0,0,0,0.45); }
-  .mw-hero-locality { font-size: 13.5px; opacity: 0.92; margin-bottom: 16px; text-shadow: 0 1px 6px rgba(0,0,0,0.4); }
+  .mw-hero-locality { font-size: 13.5px; opacity: 0.92; margin-bottom: 10px; text-shadow: 0 1px 6px rgba(0,0,0,0.4); }
+  .mw-hero-desc { font-size: 13px; line-height: 1.5; opacity: 0.95; margin-bottom: 16px; max-width: 560px; text-shadow: 0 1px 6px rgba(0,0,0,0.4); }
   .mw-hero-cta { display: flex; gap: 10px; flex-wrap: wrap; }
   .mw-hero-cta a { flex: 1; min-width: 130px; text-align: center; padding: 12px 14px; border-radius: 12px; font-weight: 700; font-size: 13.5px; text-decoration: none; }
   .mw-hero-cta a.primary { background: var(--accent); color: #fff; }
@@ -1592,6 +1605,21 @@
     el.setAttribute('content', content);
   }
 
+  // Igual que upsertMeta, pero para etiquetas Open Graph (og:*), que usan
+  // el atributo "property" en vez de "name" — las necesitan Facebook,
+  // WhatsApp, etc. para mostrar una vista previa decente al compartir el
+  // enlace del menú/mini-web.
+  function upsertMetaProperty(property, content) {
+    if (!content) return;
+    var el = document.querySelector('meta[property="' + property + '"]');
+    if (!el) {
+      el = document.createElement('meta');
+      el.setAttribute('property', property);
+      document.head.appendChild(el);
+    }
+    el.setAttribute('content', content);
+  }
+
   function upsertJsonLd(id, obj) {
     var el = document.getElementById(id);
     if (!el) {
@@ -1604,12 +1632,29 @@
   }
 
   function applySeoMetadata(data, displayName) {
-    // --- Meta description: nombre + hasta 4 platos destacados + localidad ---
+    // --- Meta description: descripción SEO del dueño (si existe) + hasta
+    // 4 platos destacados + localidad; sin descripción propia, se cae al
+    // nombre + localidad como antes ---
     var highlightNames = ITEMS.slice(0, 4).map(function (it) { return fieldFor(it, 'name'); }).filter(Boolean);
     var localityBit = data.city ? (' en ' + data.city) : '';
-    var descParts = [displayName + localityBit];
+    var descParts = [data.seo_description || (displayName + localityBit)];
     if (highlightNames.length) descParts.push('Platos: ' + highlightNames.join(', ') + '.');
-    upsertMeta('description', descParts.join('. ').slice(0, 300));
+    var metaDescription = descParts.join('. ').slice(0, 300);
+    upsertMeta('description', metaDescription);
+
+    // --- Open Graph / Twitter Card: para que compartir el enlace (en
+    // WhatsApp, Facebook, X...) muestre nombre, descripción y foto, no
+    // solo la URL pelada ---
+    var pageUrlForOg = location.href.split('#')[0];
+    upsertMetaProperty('og:type', 'website');
+    upsertMetaProperty('og:title', displayName);
+    upsertMetaProperty('og:description', metaDescription.slice(0, 200));
+    upsertMetaProperty('og:url', pageUrlForOg);
+    if (data.logo_url) upsertMetaProperty('og:image', data.logo_url);
+    upsertMeta('twitter:card', data.logo_url ? 'summary_large_image' : 'summary');
+    upsertMeta('twitter:title', displayName);
+    upsertMeta('twitter:description', metaDescription.slice(0, 200));
+    if (data.logo_url) upsertMeta('twitter:image', data.logo_url);
 
     // --- JSON-LD: Restaurant/FoodEstablishment ---
     var pageUrl = location.href.split('#')[0];
@@ -1638,6 +1683,12 @@
         reviewCount: data.rating_count
       };
     }
+
+    // --- sameAs: enlaces a los perfiles oficiales de redes sociales —
+    // ayuda a Google a asociar esta página con el mismo negocio en
+    // Facebook/Instagram/etc. (entity resolution para el Knowledge Panel) ---
+    var sameAs = [data.facebook_url, data.instagram_url, data.tiktok_url, data.twitter_url].filter(Boolean);
+    if (sameAs.length) restaurantSchema.sameAs = sameAs;
 
     // --- JSON-LD: Menu / MenuItem, anidado dentro del restaurante ---
     if (ITEMS.length) {
@@ -1713,6 +1764,17 @@
       overlay.appendChild(locality);
     }
 
+    // Descripción corta (SEO): texto que el dueño escribe a mano en la
+    // app para que la página de Inicio tenga contenido real sobre el
+    // negocio, no solo foto+botones — ayuda tanto a quien lee como a que
+    // Google entienda de qué trata la página.
+    if (data.seo_description) {
+      var desc = document.createElement('div');
+      desc.className = 'mw-hero-desc';
+      desc.textContent = data.seo_description;
+      overlay.appendChild(desc);
+    }
+
     var cta = document.createElement('div');
     cta.className = 'mw-hero-cta';
     var menuBtn = document.createElement('a');
@@ -1745,6 +1807,69 @@
 
     hero.appendChild(overlay);
     return hero;
+  }
+
+  // Pie de página: nombre, dirección/teléfono (NAP, útil para el SEO
+  // local) e iconos de redes sociales — solo se muestran los enlaces que
+  // el dueño haya rellenado en "Redes sociales" (Ajustes > mini-web
+  // avanzada). Vive dentro de #miniWeb, fuera de PAGE_GROUPS, así que se
+  // ve en todas las "páginas" de la navegación (Inicio, Horario, etc.).
+  function buildFooter(data, displayName) {
+    var footer = document.createElement('div');
+    footer.className = 'mw-footer';
+    footer.id = 'mwFooter';
+
+    var inner = document.createElement('div');
+    inner.className = 'mw-footer-inner';
+
+    var nameEl = document.createElement('div');
+    nameEl.className = 'mw-footer-name';
+    nameEl.textContent = displayName;
+    inner.appendChild(nameEl);
+
+    var addressParts = [data.address, data.postal_code, data.city].filter(Boolean);
+    if (addressParts.length) {
+      var addr = document.createElement('div');
+      addr.className = 'mw-footer-row';
+      addr.textContent = '📍 ' + addressParts.join(', ');
+      inner.appendChild(addr);
+    }
+    if (data.phone) {
+      var ph = document.createElement('div');
+      ph.className = 'mw-footer-row';
+      ph.textContent = '📞 ' + data.phone;
+      inner.appendChild(ph);
+    }
+
+    var socials = [
+      { url: data.facebook_url, icon: '📘', label: 'Facebook' },
+      { url: data.instagram_url, icon: '📷', label: 'Instagram' },
+      { url: data.tiktok_url, icon: '🎵', label: 'TikTok' },
+      { url: data.twitter_url, icon: '✖️', label: 'X (Twitter)' }
+    ].filter(function (s) { return s.url; });
+
+    if (socials.length) {
+      var socialRow = document.createElement('div');
+      socialRow.className = 'mw-footer-social';
+      socials.forEach(function (s) {
+        var a = document.createElement('a');
+        a.href = s.url;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        a.setAttribute('aria-label', s.label);
+        a.textContent = s.icon;
+        socialRow.appendChild(a);
+      });
+      inner.appendChild(socialRow);
+    }
+
+    var copy = document.createElement('div');
+    copy.className = 'mw-footer-copy';
+    copy.textContent = '© ' + new Date().getFullYear() + ' ' + displayName;
+    inner.appendChild(copy);
+
+    footer.appendChild(inner);
+    return footer;
   }
 
   // Mini-web: para sucursales sin página propia (website_url vacío), o
@@ -1894,6 +2019,8 @@
       });
       wrap.appendChild(reviewsSection);
     }
+
+    wrap.appendChild(buildFooter(data, displayName));
 
     wrap.style.display = 'block';
   }
