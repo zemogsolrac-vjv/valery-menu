@@ -270,6 +270,8 @@
   .site-nav-dropdown.open { display: flex; }
   .site-nav-dropdown a { padding: 11px 4px; font-size: 13.5px; font-weight: 600; color: var(--text); text-decoration: none; border-bottom: 1px solid #f3efe8; }
   .site-nav-dropdown a:last-child { border-bottom: none; }
+  .site-nav-label { padding: 13px 4px 4px; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+  .site-nav-links .site-nav-label { padding: 13px 10px 13px 16px; border-left: 1px solid #eee; margin-left: 4px; }
   @media (min-width: 640px) {
     .site-nav-links { display: flex; }
     .site-nav-toggle { display: none; }
@@ -531,7 +533,7 @@
   function renderRatingBadge(data) {
     var badge = document.getElementById('ratingBadge');
     badge.innerHTML = '';
-    if (!data.advanced_web_enabled || typeof data.rating_avg !== 'number' || !(data.rating_count > 0)) {
+    if (!data.advanced_web_enabled || data.show_rating_badge === false || typeof data.rating_avg !== 'number' || !(data.rating_count > 0)) {
       badge.style.display = 'none';
       return;
     }
@@ -547,10 +549,13 @@
   }
 
   // Menú de navegación "como cualquier web normal" — solo para la
-  // mini-web avanzada. Enlaces por anclas a las secciones que existan de
-  // verdad (si la sucursal no tiene galería, por ejemplo, no se ofrece
-  // ese enlace). En móvil se colapsa en un botón de hamburguesa con
-  // desplegable (igual que el selector de idioma, pero hacia abajo).
+  // mini-web avanzada. En escritorio se ve entera; en móvil se colapsa
+  // en el botón de hamburguesa (☰ Menú) con un desplegable, igual que
+  // pidió Carlos: Inicio, Menú (carta), Horario, Fotos, Mapa y, si la
+  // empresa tiene más de una sucursal con página propia, "Otras
+  // sucursales" al final — sustituye aquí al botón-pastilla aparte que
+  // había en la cabecera (renderBranchSwitcher sigue existiendo tal
+  // cual para las sucursales SIN la mini-web avanzada).
   function renderSiteNav(data) {
     var nav = document.getElementById('siteNav');
     var linksWrap = document.getElementById('siteNavLinks');
@@ -558,16 +563,25 @@
     linksWrap.innerHTML = '';
     dropdown.innerHTML = '';
 
-    if (!data.advanced_web_enabled || data.website_url) { nav.style.display = 'none'; return; }
+    if (!data.advanced_web_enabled || data.website_url) {
+      nav.style.display = 'none';
+      return;
+    }
 
     var sections = [];
     sections.push({ href: '#mwHero', label: '🏠 Inicio' });
-    if (ITEMS.length) sections.push({ href: '#main', label: '🍽️ Carta' });
-    if (Array.isArray(data.gallery_photos) && data.gallery_photos.length) sections.push({ href: '#mwGallery', label: '📸 Galería' });
-    if (Array.isArray(data.reviews_highlight) && data.reviews_highlight.length) sections.push({ href: '#mwReviews', label: '⭐ Reseñas' });
-    if (data.address || data.city || data.opening_hours || data.phone) sections.push({ href: '#mwContact', label: '📍 Contacto' });
+    if (ITEMS.length) sections.push({ href: '#main', label: '🍽️ Menú' });
+    if (data.opening_hours) sections.push({ href: '#mwContact', label: '🕒 Horario' });
+    if (Array.isArray(data.gallery_photos) && data.gallery_photos.length) sections.push({ href: '#mwGallery', label: '📸 Fotos' });
+    var mapHref = null;
+    if (data.address || data.city) {
+      mapHref = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent([data.address, data.postal_code, data.city].filter(Boolean).join(', '));
+      sections.push({ href: mapHref, label: '🗺️ Mapa', external: true });
+    }
 
-    if (sections.length < 2) { nav.style.display = 'none'; return; }
+    var siblings = (Array.isArray(data.siblings) ? data.siblings : []).filter(function (s) { return s && s.slug; });
+
+    if (sections.length < 2 && !siblings.length) { nav.style.display = 'none'; return; }
 
     function scrollToSection(e, href) {
       var el = document.querySelector(href);
@@ -578,19 +592,50 @@
       document.getElementById('siteNavToggleBtn').setAttribute('aria-expanded', 'false');
     }
 
-    sections.forEach(function (s) {
-      var a1 = document.createElement('a');
-      a1.href = s.href;
-      a1.textContent = s.label;
-      a1.onclick = function (e) { scrollToSection(e, s.href); };
-      linksWrap.appendChild(a1);
+    function buildLink(s) {
+      var a = document.createElement('a');
+      a.href = s.href;
+      a.textContent = s.label;
+      if (s.external) {
+        a.target = '_blank';
+        a.rel = 'noopener';
+      } else {
+        a.onclick = function (e) { scrollToSection(e, s.href); };
+      }
+      return a;
+    }
 
-      var a2 = document.createElement('a');
-      a2.href = s.href;
-      a2.textContent = s.label;
-      a2.onclick = function (e) { scrollToSection(e, s.href); };
-      dropdown.appendChild(a2);
+    sections.forEach(function (s) {
+      linksWrap.appendChild(buildLink(s));
+      dropdown.appendChild(buildLink(s));
     });
+
+    // "Otras sucursales": igual que el selector de cabecera, pero
+    // integrado en este mismo menú para no duplicar botones — con un
+    // enlace por sucursal hermana que ya tenga slug propio.
+    if (siblings.length) {
+      var divider = document.createElement('div');
+      divider.className = 'site-nav-label';
+      divider.textContent = '🏠 Otras sucursales';
+      linksWrap.appendChild(divider.cloneNode(true));
+      dropdown.appendChild(divider);
+      siblings.forEach(function (s) {
+        var link = { href: basePath + '?slug=' + encodeURIComponent(s.slug), label: s.name || s.slug, external: false };
+        var a1 = document.createElement('a');
+        a1.href = link.href;
+        a1.textContent = link.label;
+        linksWrap.appendChild(a1);
+        var a2 = document.createElement('a');
+        a2.href = link.href;
+        a2.textContent = link.label;
+        dropdown.appendChild(a2);
+      });
+    }
+
+    // Con el menú avanzado ya se cubre el cambio de sucursal, así que se
+    // oculta el botón-pastilla aparte de la cabecera para no duplicarlo.
+    var switcherWrap = document.getElementById('branchSwitcher');
+    if (switcherWrap) switcherWrap.style.display = 'none';
 
     nav.style.display = 'block';
   }
@@ -622,13 +667,27 @@
     this.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
   });
 
-  function renderWhatsappFab(phone, displayName) {
+  function renderWhatsappFab(data, displayName) {
     var wrap = document.getElementById('whatsappFab');
     var btn = document.getElementById('whatsappFabBtn');
-    if (!phone) { wrap.style.display = 'none'; return; }
-    var digits = String(phone).replace(/[^0-9+]/g, '');
+    if (!data.phone || data.show_whatsapp_fab === false) { wrap.style.display = 'none'; return; }
+    var digits = String(data.phone).replace(/[^0-9+]/g, '');
     btn.href = 'https://wa.me/' + digits.replace('+', '') + '?text=' + encodeURIComponent('Hola, quiero hacer una consulta sobre ' + (displayName || ''));
     wrap.style.display = 'block';
+  }
+
+  // Idioma y WhatsApp son los dos botones flotantes de abajo a la
+  // derecha, y cada uno es opcional por sucursal — si uno de los dos
+  // está apagado, el otro baja a ocupar su sitio en vez de dejar un
+  // hueco en el aire.
+  function renderLangPickerVisibility(data) {
+    var picker = document.querySelector('.lang-picker');
+    var langVisible = data.show_lang_picker !== false;
+    picker.style.display = langVisible ? '' : 'none';
+    var whatsappFab = document.getElementById('whatsappFab');
+    whatsappFab.style.bottom = langVisible
+      ? 'calc(76px + env(safe-area-inset-bottom, 0px))'
+      : 'calc(16px + env(safe-area-inset-bottom, 0px))';
   }
 
   // Antes era un <select> nativo con los nombres en texto — ahora es un
@@ -1828,7 +1887,8 @@
         applyThemeColor(data.theme_color);
         applyCustomPalette(data);
         renderRatingBadge(data);
-        renderWhatsappFab(data.phone, displayName);
+        renderWhatsappFab(data, displayName);
+        renderLangPickerVisibility(data);
         var logoImg = document.getElementById('logoImg');
         if (data.logo_url) {
           logoImg.src = data.logo_url;
