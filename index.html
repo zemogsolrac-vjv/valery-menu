@@ -219,6 +219,7 @@
   .mini-web-review-stars { color: #f5a623; font-size: 13px; letter-spacing: 1px; }
   .mini-web-review-text { font-size: 13px; color: var(--muted); line-height: 1.4; margin-top: 2px; font-style: italic; }
   .mini-web-review-name { font-size: 11.5px; font-weight: 700; color: var(--text); margin-top: 3px; }
+  .mw-map-frame { width: 100%; height: 220px; border: 0; border-radius: 12px; margin-top: 10px; display: block; }
 
   /* Hero de la mini-web: foto de portada (primera foto de galería, o el
      logo si no hay galería, o un degradado del color de marca si no hay
@@ -264,7 +265,8 @@
   .site-nav-inner { max-width: 900px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; padding: 0 12px; }
   .site-nav-links { display: none; gap: 4px; }
   .site-nav-links a { padding: 13px 12px; font-size: 13px; font-weight: 700; color: var(--text); text-decoration: none; border-bottom: 2px solid transparent; }
-  .site-nav-links a:hover, .site-nav-links a:focus-visible { color: var(--accent); border-bottom-color: var(--accent); }
+  .site-nav-links a:hover, .site-nav-links a:focus-visible, .site-nav-links a.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .site-nav-dropdown a.active { color: var(--accent); background: var(--accent-soft); }
   .site-nav-toggle { display: flex; align-items: center; gap: 6px; border: none; background: none; padding: 13px 4px; font-size: 13px; font-weight: 700; color: var(--text); }
   .site-nav-dropdown { display: none; flex-direction: column; background: #fff; border-top: 1px solid #eee; padding: 4px 12px 8px; }
   .site-nav-dropdown.open { display: flex; }
@@ -314,7 +316,7 @@
   <div class="site-nav-dropdown" id="siteNavDropdown"></div>
 </nav>
 <div id="miniWeb" style="display:none"></div>
-<div class="layout">
+<div class="layout" id="menuLayout">
   <nav class="categories" id="categories" aria-label="Categorías del menú"></nav>
   <main id="main"><div class="loading">Cargando menú…</div></main>
 </div>
@@ -548,14 +550,42 @@
     badge.style.display = 'inline-flex';
   }
 
+  // Páginas de la mini-web avanzada: en vez de un scroll largo con todo
+  // seguido, cada entrada del menú muestra SOLO su bloque y oculta el
+  // resto — como páginas separadas de una web normal. Cada clave es un
+  // id (o varios) de los bloques que construye renderMiniWeb/el propio
+  // HTML; showPage() los intercambia.
+  var PAGE_GROUPS = {
+    inicio: ['mwHero', 'mwReviews'],
+    menu: ['menuLayout'],
+    horario: ['mwHours'],
+    fotos: ['mwGallery'],
+    mapa: ['mwMap']
+  };
+
+  function showPage(key) {
+    if (!PAGE_GROUPS[key]) return;
+    Object.keys(PAGE_GROUPS).forEach(function (k) {
+      PAGE_GROUPS[k].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.style.display = (k === key) ? '' : 'none';
+      });
+    });
+    document.querySelectorAll('.site-nav-links a[data-page], .site-nav-dropdown a[data-page]').forEach(function (a) {
+      a.classList.toggle('active', a.dataset.page === key);
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   // Menú de navegación "como cualquier web normal" — solo para la
   // mini-web avanzada. En escritorio se ve entera; en móvil se colapsa
-  // en el botón de hamburguesa (☰ Menú) con un desplegable, igual que
-  // pidió Carlos: Inicio, Menú (carta), Horario, Fotos, Mapa y, si la
-  // empresa tiene más de una sucursal con página propia, "Otras
-  // sucursales" al final — sustituye aquí al botón-pastilla aparte que
-  // había en la cabecera (renderBranchSwitcher sigue existiendo tal
-  // cual para las sucursales SIN la mini-web avanzada).
+  // en el botón de hamburguesa (☰ Menú) con un desplegable. Cada
+  // entrada es su propia "página" (ver showPage), no un simple salto de
+  // scroll: Inicio, Menú, Horario, Fotos, Mapa y, si la empresa tiene
+  // más de una sucursal con página propia, "Otras sucursales" al final
+  // — sustituye aquí al botón-pastilla aparte que había en la cabecera
+  // (renderBranchSwitcher sigue existiendo tal cual para las sucursales
+  // SIN la mini-web avanzada).
   function renderSiteNav(data) {
     var nav = document.getElementById('siteNav');
     var linksWrap = document.getElementById('siteNavLinks');
@@ -572,40 +602,27 @@
       return;
     }
 
-    var sections = [];
-    sections.push({ href: '#mwHero', label: '🏠 Inicio' });
-    if (ITEMS.length) sections.push({ href: '#main', label: '🍽️ Menú' });
-    if (data.opening_hours) sections.push({ href: '#mwContact', label: '🕒 Horario' });
-    if (Array.isArray(data.gallery_photos) && data.gallery_photos.length) sections.push({ href: '#mwGallery', label: '📸 Fotos' });
-    var mapHref = null;
-    if (data.address || data.city) {
-      mapHref = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent([data.address, data.postal_code, data.city].filter(Boolean).join(', '));
-      sections.push({ href: mapHref, label: '🗺️ Mapa', external: true });
-    }
+    var sections = [{ key: 'inicio', label: 'Inicio' }];
+    if (ITEMS.length) sections.push({ key: 'menu', label: 'Menú' });
+    if (data.opening_hours || data.phone) sections.push({ key: 'horario', label: 'Horario' });
+    if (Array.isArray(data.gallery_photos) && data.gallery_photos.length) sections.push({ key: 'fotos', label: 'Fotos' });
+    if (data.address || data.city) sections.push({ key: 'mapa', label: 'Mapa' });
 
     var siblings = (Array.isArray(data.siblings) ? data.siblings : []).filter(function (s) { return s && s.slug; });
 
     if (sections.length < 2 && !siblings.length) { nav.style.display = 'none'; return; }
 
-    function scrollToSection(e, href) {
-      var el = document.querySelector(href);
-      if (!el) return;
-      e.preventDefault();
-      el.scrollIntoView({ behavior: 'smooth' });
-      dropdown.classList.remove('open');
-      document.getElementById('siteNavToggleBtn').setAttribute('aria-expanded', 'false');
-    }
-
     function buildLink(s) {
       var a = document.createElement('a');
-      a.href = s.href;
+      a.href = '#';
       a.textContent = s.label;
-      if (s.external) {
-        a.target = '_blank';
-        a.rel = 'noopener';
-      } else {
-        a.onclick = function (e) { scrollToSection(e, s.href); };
-      }
+      a.dataset.page = s.key;
+      a.onclick = function (e) {
+        e.preventDefault();
+        showPage(s.key);
+        dropdown.classList.remove('open');
+        document.getElementById('siteNavToggleBtn').setAttribute('aria-expanded', 'false');
+      };
       return a;
     }
 
@@ -620,18 +637,19 @@
     if (siblings.length) {
       var divider = document.createElement('div');
       divider.className = 'site-nav-label';
-      divider.textContent = '🏠 Otras sucursales';
+      divider.textContent = 'Otras sucursales';
       linksWrap.appendChild(divider.cloneNode(true));
       dropdown.appendChild(divider);
       siblings.forEach(function (s) {
-        var link = { href: basePath + '?slug=' + encodeURIComponent(s.slug), label: s.name || s.slug, external: false };
+        var href = basePath + '?slug=' + encodeURIComponent(s.slug);
+        var label = s.name || s.slug;
         var a1 = document.createElement('a');
-        a1.href = link.href;
-        a1.textContent = link.label;
+        a1.href = href;
+        a1.textContent = label;
         linksWrap.appendChild(a1);
         var a2 = document.createElement('a');
-        a2.href = link.href;
-        a2.textContent = link.label;
+        a2.href = href;
+        a2.textContent = label;
         dropdown.appendChild(a2);
       });
     }
@@ -1708,6 +1726,11 @@
     menuBtn.textContent = '🍽️ Ver carta';
     menuBtn.onclick = function (e) {
       e.preventDefault();
+      var siteNav = document.getElementById('siteNav');
+      if (siteNav && siteNav.style.display !== 'none') {
+        showPage('menu');
+        return;
+      }
       var main = document.getElementById('main');
       if (main) main.scrollIntoView({ behavior: 'smooth' });
     };
@@ -1743,47 +1766,31 @@
     wrap.className = 'mini-web';
     wrap.appendChild(buildHero(data, displayName));
 
-    var hasContact = data.address || data.city || data.opening_hours;
     var hasGallery = Array.isArray(data.gallery_photos) && data.gallery_photos.length > 0;
     var hasReviews = Array.isArray(data.reviews_highlight) && data.reviews_highlight.length > 0;
+    var hasMap = !!(data.address || data.city);
 
-    if (hasContact || data.phone) {
-      var contactSection = document.createElement('div');
-      contactSection.className = 'mini-web-section';
-      contactSection.id = 'mwContact';
-      var title = document.createElement('h2');
-      title.className = 'mini-web-title';
-      title.textContent = '📍 Visítanos';
-      contactSection.appendChild(title);
-
-      var addressParts = [data.address, data.postal_code, data.city].filter(Boolean);
-      if (addressParts.length) {
-        var addrRow = document.createElement('div');
-        addrRow.className = 'mini-web-row';
-        addrRow.textContent = addressParts.join(', ');
-        contactSection.appendChild(addrRow);
-
-        var mapLink = document.createElement('a');
-        mapLink.className = 'mini-web-map-link';
-        mapLink.href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(addressParts.join(', '));
-        mapLink.target = '_blank';
-        mapLink.rel = 'noopener';
-        mapLink.textContent = '🗺️ Cómo llegar';
-        contactSection.appendChild(mapLink);
-      }
+    if (data.opening_hours || data.phone) {
+      var hoursSection = document.createElement('div');
+      hoursSection.className = 'mini-web-section';
+      hoursSection.id = 'mwHours';
+      var hoursTitle = document.createElement('h2');
+      hoursTitle.className = 'mini-web-title';
+      hoursTitle.textContent = '🕒 Horario';
+      hoursSection.appendChild(hoursTitle);
 
       if (data.opening_hours) {
         var hoursRow = document.createElement('div');
         hoursRow.className = 'mini-web-row mini-web-hours';
-        hoursRow.style.marginTop = addressParts.length ? '8px' : '0';
         hoursRow.textContent = data.opening_hours;
-        contactSection.appendChild(hoursRow);
+        hoursSection.appendChild(hoursRow);
       }
 
       if (data.phone) {
         var digits = String(data.phone).replace(/[^0-9+]/g, '');
         var reserveRow = document.createElement('div');
         reserveRow.className = 'mini-web-reserve';
+        reserveRow.style.marginTop = data.opening_hours ? '10px' : '0';
         var wa = document.createElement('a');
         wa.className = 'whatsapp';
         wa.href = 'https://wa.me/' + digits.replace('+', '') + '?text=' + encodeURIComponent('Hola, quiero reservar en ' + displayName);
@@ -1796,10 +1803,47 @@
         call.textContent = '📞 Llamar para reservar';
         reserveRow.appendChild(wa);
         reserveRow.appendChild(call);
-        contactSection.appendChild(reserveRow);
+        hoursSection.appendChild(reserveRow);
       }
 
-      wrap.appendChild(contactSection);
+      wrap.appendChild(hoursSection);
+    }
+
+    if (hasMap) {
+      var mapSection = document.createElement('div');
+      mapSection.className = 'mini-web-section';
+      mapSection.id = 'mwMap';
+      var mapTitle = document.createElement('h2');
+      mapTitle.className = 'mini-web-title';
+      mapTitle.textContent = '🗺️ Mapa';
+      mapSection.appendChild(mapTitle);
+
+      var addressParts = [data.address, data.postal_code, data.city].filter(Boolean);
+      if (addressParts.length) {
+        var addrRow = document.createElement('div');
+        addrRow.className = 'mini-web-row';
+        addrRow.textContent = addressParts.join(', ');
+        mapSection.appendChild(addrRow);
+      }
+
+      var mapQuery = encodeURIComponent(addressParts.length ? addressParts.join(', ') : (data.city || displayName));
+      var mapFrame = document.createElement('iframe');
+      mapFrame.className = 'mw-map-frame';
+      mapFrame.loading = 'lazy';
+      mapFrame.src = 'https://www.google.com/maps?q=' + mapQuery + '&output=embed';
+      mapFrame.setAttribute('allowfullscreen', '');
+      mapFrame.setAttribute('aria-label', 'Mapa de ' + displayName);
+      mapSection.appendChild(mapFrame);
+
+      var mapLink = document.createElement('a');
+      mapLink.className = 'mini-web-map-link';
+      mapLink.href = 'https://www.google.com/maps/search/?api=1&query=' + mapQuery;
+      mapLink.target = '_blank';
+      mapLink.rel = 'noopener';
+      mapLink.textContent = 'Abrir en Google Maps';
+      mapSection.appendChild(mapLink);
+
+      wrap.appendChild(mapSection);
     }
 
     if (hasGallery) {
@@ -1808,7 +1852,7 @@
       gallerySection.id = 'mwGallery';
       var galleryTitle = document.createElement('h2');
       galleryTitle.className = 'mini-web-title';
-      galleryTitle.textContent = '📸 El local';
+      galleryTitle.textContent = '📸 Fotos';
       gallerySection.appendChild(galleryTitle);
 
       var grid = document.createElement('div');
@@ -1936,6 +1980,12 @@
         adjustStickyOffsets();
         applySeoMetadata(data, displayName);
         renderMiniWeb(data, displayName);
+        // Las "páginas" (Inicio/Menú/Horario/Fotos/Mapa) solo existen
+        // una vez que renderMiniWeb ha construido sus bloques — por eso
+        // esto va al final, después de todo lo demás.
+        if (data.advanced_web_enabled && document.getElementById('siteNav').style.display !== 'none') {
+          showPage('inicio');
+        }
       })
       .catch(function () {
         document.getElementById('main').innerHTML = '<div class="empty">No se pudo cargar el menú. Comprueba tu conexión.</div>';
