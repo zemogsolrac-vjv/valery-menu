@@ -57,13 +57,13 @@
   .lang-menu button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 10px; border: none; background: none; border-radius: 8px; font-size: 13.5px; font-weight: 600; color: var(--text); text-align: left; }
   .lang-menu button.active { background: var(--accent-soft); color: var(--accent); }
   .lang-menu .flag { font-size: 18px; line-height: 1; }
-  .contact-links { display: flex; justify-content: center; gap: 8px; padding: 8px 12px 2px; }
-  .contact-links a {
-    display: inline-flex; align-items: center; gap: 5px; text-decoration: none;
-    background: var(--accent); color: #fff; font-weight: 700; font-size: 12px;
-    padding: 7px 14px; border-radius: 999px;
-  }
-  .contact-links a.whatsapp { background: #25D366; color: #06341f; }
+  /* WhatsApp: botón redondo flotante abajo a la derecha, apilado JUSTO
+     ENCIMA del selector de idioma (mismo estilo "FAB") — sustituye a las
+     píldoras "Llamar"/"WhatsApp" que antes iban debajo del nombre en la
+     cabecera, que quedaban recargadas. Solo aparece si la sucursal tiene
+     teléfono configurado. */
+  .whatsapp-fab { position: fixed; right: 16px; bottom: calc(76px + env(safe-area-inset-bottom, 0px)); z-index: 40; }
+  .whatsapp-fab-btn { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: #25D366; color: #06341f; font-size: 22px; line-height: 1; box-shadow: 0 6px 16px rgba(0,0,0,0.32); text-decoration: none; }
 
   .layout { display: flex; flex-direction: column; }
 
@@ -270,6 +270,8 @@
   .site-nav-dropdown.open { display: flex; }
   .site-nav-dropdown a { padding: 11px 4px; font-size: 13.5px; font-weight: 600; color: var(--text); text-decoration: none; border-bottom: 1px solid #f3efe8; }
   .site-nav-dropdown a:last-child { border-bottom: none; }
+  .site-nav-label { padding: 13px 4px 4px; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+  .site-nav-links .site-nav-label { padding: 13px 10px 13px 16px; border-left: 1px solid #eee; margin-left: 4px; }
   @media (min-width: 640px) {
     .site-nav-links { display: flex; }
     .site-nav-toggle { display: none; }
@@ -300,7 +302,6 @@
       <h1 id="companyName">Menú</h1>
       <div class="branch" id="branchName" style="display:none"></div>
       <div class="rating-badge" id="ratingBadge" style="display:none"></div>
-      <div class="contact-links" id="contactLinks" style="display:none"></div>
       <div class="header-switcher" id="branchSwitcher" style="display:none"></div>
     </div>
   </div>
@@ -316,6 +317,9 @@
 <div class="layout">
   <nav class="categories" id="categories" aria-label="Categorías del menú"></nav>
   <main id="main"><div class="loading">Cargando menú…</div></main>
+</div>
+<div class="whatsapp-fab" id="whatsappFab" style="display:none">
+  <a class="whatsapp-fab-btn" id="whatsappFabBtn" href="#" target="_blank" rel="noopener" aria-label="WhatsApp">💬</a>
 </div>
 <div class="lang-picker">
   <button class="lang-btn" id="langBtn" type="button" aria-label="Elegir idioma" aria-haspopup="true" aria-expanded="false">🌐</button>
@@ -448,9 +452,13 @@
   // con un solo '?slug=' nuevo, sin arrastrar el de la sucursal actual.
   var basePath = location.pathname.replace(/[^/]*$/, '');
 
-  var stored = null;
-  try { stored = localStorage.getItem('menuLang'); } catch (e) {}
-  var current = stored && LANGS[stored] ? stored : (navigator.language || 'en').slice(0, 2);
+  // Idioma: SIEMPRE el del móvil de quien abre el enlace, cada vez que
+  // lo abre — esto es un menú público que ven muchos clientes distintos
+  // en el mismo sitio (y a veces en el mismo dispositivo, ej. una
+  // tablet en la mesa), así que no debe "recordar" el idioma que eligió
+  // el cliente anterior. Si el idioma del móvil no es ninguno de los
+  // soportados, se abre en inglés.
+  var current = (navigator.language || 'en').slice(0, 2);
   if (!LANGS[current]) current = 'en';
   // Para que un lector de pantalla pronuncie el contenido en el idioma
   // correcto (y no siempre en español, que es lo que decía el <html>
@@ -525,7 +533,7 @@
   function renderRatingBadge(data) {
     var badge = document.getElementById('ratingBadge');
     badge.innerHTML = '';
-    if (!data.advanced_web_enabled || typeof data.rating_avg !== 'number' || !(data.rating_count > 0)) {
+    if (!data.advanced_web_enabled || data.show_rating_badge === false || typeof data.rating_avg !== 'number' || !(data.rating_count > 0)) {
       badge.style.display = 'none';
       return;
     }
@@ -541,10 +549,13 @@
   }
 
   // Menú de navegación "como cualquier web normal" — solo para la
-  // mini-web avanzada. Enlaces por anclas a las secciones que existan de
-  // verdad (si la sucursal no tiene galería, por ejemplo, no se ofrece
-  // ese enlace). En móvil se colapsa en un botón de hamburguesa con
-  // desplegable (igual que el selector de idioma, pero hacia abajo).
+  // mini-web avanzada. En escritorio se ve entera; en móvil se colapsa
+  // en el botón de hamburguesa (☰ Menú) con un desplegable, igual que
+  // pidió Carlos: Inicio, Menú (carta), Horario, Fotos, Mapa y, si la
+  // empresa tiene más de una sucursal con página propia, "Otras
+  // sucursales" al final — sustituye aquí al botón-pastilla aparte que
+  // había en la cabecera (renderBranchSwitcher sigue existiendo tal
+  // cual para las sucursales SIN la mini-web avanzada).
   function renderSiteNav(data) {
     var nav = document.getElementById('siteNav');
     var linksWrap = document.getElementById('siteNavLinks');
@@ -552,16 +563,25 @@
     linksWrap.innerHTML = '';
     dropdown.innerHTML = '';
 
-    if (!data.advanced_web_enabled || data.website_url) { nav.style.display = 'none'; return; }
+    if (!data.advanced_web_enabled || data.website_url) {
+      nav.style.display = 'none';
+      return;
+    }
 
     var sections = [];
     sections.push({ href: '#mwHero', label: '🏠 Inicio' });
-    if (ITEMS.length) sections.push({ href: '#main', label: '🍽️ Carta' });
-    if (Array.isArray(data.gallery_photos) && data.gallery_photos.length) sections.push({ href: '#mwGallery', label: '📸 Galería' });
-    if (Array.isArray(data.reviews_highlight) && data.reviews_highlight.length) sections.push({ href: '#mwReviews', label: '⭐ Reseñas' });
-    if (data.address || data.city || data.opening_hours || data.phone) sections.push({ href: '#mwContact', label: '📍 Contacto' });
+    if (ITEMS.length) sections.push({ href: '#main', label: '🍽️ Menú' });
+    if (data.opening_hours) sections.push({ href: '#mwContact', label: '🕒 Horario' });
+    if (Array.isArray(data.gallery_photos) && data.gallery_photos.length) sections.push({ href: '#mwGallery', label: '📸 Fotos' });
+    var mapHref = null;
+    if (data.address || data.city) {
+      mapHref = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent([data.address, data.postal_code, data.city].filter(Boolean).join(', '));
+      sections.push({ href: mapHref, label: '🗺️ Mapa', external: true });
+    }
 
-    if (sections.length < 2) { nav.style.display = 'none'; return; }
+    var siblings = (Array.isArray(data.siblings) ? data.siblings : []).filter(function (s) { return s && s.slug; });
+
+    if (sections.length < 2 && !siblings.length) { nav.style.display = 'none'; return; }
 
     function scrollToSection(e, href) {
       var el = document.querySelector(href);
@@ -572,19 +592,50 @@
       document.getElementById('siteNavToggleBtn').setAttribute('aria-expanded', 'false');
     }
 
-    sections.forEach(function (s) {
-      var a1 = document.createElement('a');
-      a1.href = s.href;
-      a1.textContent = s.label;
-      a1.onclick = function (e) { scrollToSection(e, s.href); };
-      linksWrap.appendChild(a1);
+    function buildLink(s) {
+      var a = document.createElement('a');
+      a.href = s.href;
+      a.textContent = s.label;
+      if (s.external) {
+        a.target = '_blank';
+        a.rel = 'noopener';
+      } else {
+        a.onclick = function (e) { scrollToSection(e, s.href); };
+      }
+      return a;
+    }
 
-      var a2 = document.createElement('a');
-      a2.href = s.href;
-      a2.textContent = s.label;
-      a2.onclick = function (e) { scrollToSection(e, s.href); };
-      dropdown.appendChild(a2);
+    sections.forEach(function (s) {
+      linksWrap.appendChild(buildLink(s));
+      dropdown.appendChild(buildLink(s));
     });
+
+    // "Otras sucursales": igual que el selector de cabecera, pero
+    // integrado en este mismo menú para no duplicar botones — con un
+    // enlace por sucursal hermana que ya tenga slug propio.
+    if (siblings.length) {
+      var divider = document.createElement('div');
+      divider.className = 'site-nav-label';
+      divider.textContent = '🏠 Otras sucursales';
+      linksWrap.appendChild(divider.cloneNode(true));
+      dropdown.appendChild(divider);
+      siblings.forEach(function (s) {
+        var link = { href: basePath + '?slug=' + encodeURIComponent(s.slug), label: s.name || s.slug, external: false };
+        var a1 = document.createElement('a');
+        a1.href = link.href;
+        a1.textContent = link.label;
+        linksWrap.appendChild(a1);
+        var a2 = document.createElement('a');
+        a2.href = link.href;
+        a2.textContent = link.label;
+        dropdown.appendChild(a2);
+      });
+    }
+
+    // Con el menú avanzado ya se cubre el cambio de sucursal, así que se
+    // oculta el botón-pastilla aparte de la cabecera para no duplicarlo.
+    var switcherWrap = document.getElementById('branchSwitcher');
+    if (switcherWrap) switcherWrap.style.display = 'none';
 
     nav.style.display = 'block';
   }
@@ -616,23 +667,27 @@
     this.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
   });
 
-  function renderContactLinks(phone) {
-    var wrap = document.getElementById('contactLinks');
-    wrap.innerHTML = '';
-    if (!phone) { wrap.style.display = 'none'; return; }
-    var digits = String(phone).replace(/[^0-9+]/g, '');
-    var call = document.createElement('a');
-    call.href = 'tel:' + digits;
-    call.textContent = '📞 Llamar';
-    wrap.appendChild(call);
-    var wa = document.createElement('a');
-    wa.className = 'whatsapp';
-    wa.href = 'https://wa.me/' + digits.replace('+', '');
-    wa.target = '_blank';
-    wa.rel = 'noopener';
-    wa.textContent = '💬 WhatsApp';
-    wrap.appendChild(wa);
-    wrap.style.display = 'flex';
+  function renderWhatsappFab(data, displayName) {
+    var wrap = document.getElementById('whatsappFab');
+    var btn = document.getElementById('whatsappFabBtn');
+    if (!data.phone || data.show_whatsapp_fab === false) { wrap.style.display = 'none'; return; }
+    var digits = String(data.phone).replace(/[^0-9+]/g, '');
+    btn.href = 'https://wa.me/' + digits.replace('+', '') + '?text=' + encodeURIComponent('Hola, quiero hacer una consulta sobre ' + (displayName || ''));
+    wrap.style.display = 'block';
+  }
+
+  // Idioma y WhatsApp son los dos botones flotantes de abajo a la
+  // derecha, y cada uno es opcional por sucursal — si uno de los dos
+  // está apagado, el otro baja a ocupar su sitio en vez de dejar un
+  // hueco en el aire.
+  function renderLangPickerVisibility(data) {
+    var picker = document.querySelector('.lang-picker');
+    var langVisible = data.show_lang_picker !== false;
+    picker.style.display = langVisible ? '' : 'none';
+    var whatsappFab = document.getElementById('whatsappFab');
+    whatsappFab.style.bottom = langVisible
+      ? 'calc(76px + env(safe-area-inset-bottom, 0px))'
+      : 'calc(16px + env(safe-area-inset-bottom, 0px))';
   }
 
   // Antes era un <select> nativo con los nombres en texto — ahora es un
@@ -659,8 +714,10 @@
       item.appendChild(flag);
       item.appendChild(label);
       item.onclick = function () {
+        // No se guarda en localStorage a propósito (ver arriba): este
+        // cambio manual solo vale para lo que queda de esta visita, no
+        // se queda "pegado" para el siguiente cliente que abra el menú.
         current = code;
-        try { localStorage.setItem('menuLang', current); } catch (e) {}
         document.documentElement.lang = current;
         closeLangMenu();
         // Antes solo se refrescaba renderContent(): los títulos de sección
@@ -1831,7 +1888,8 @@
         applyThemeColor(data.theme_color);
         applyCustomPalette(data);
         renderRatingBadge(data);
-        renderContactLinks(data.phone);
+        renderWhatsappFab(data, displayName);
+        renderLangPickerVisibility(data);
         var logoImg = document.getElementById('logoImg');
         if (data.logo_url) {
           logoImg.src = data.logo_url;
