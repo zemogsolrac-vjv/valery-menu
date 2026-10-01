@@ -57,13 +57,13 @@
   .lang-menu button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 10px; border: none; background: none; border-radius: 8px; font-size: 13.5px; font-weight: 600; color: var(--text); text-align: left; }
   .lang-menu button.active { background: var(--accent-soft); color: var(--accent); }
   .lang-menu .flag { font-size: 18px; line-height: 1; }
-  .contact-links { display: flex; justify-content: center; gap: 8px; padding: 8px 12px 2px; }
-  .contact-links a {
-    display: inline-flex; align-items: center; gap: 5px; text-decoration: none;
-    background: var(--accent); color: #fff; font-weight: 700; font-size: 12px;
-    padding: 7px 14px; border-radius: 999px;
-  }
-  .contact-links a.whatsapp { background: #25D366; color: #06341f; }
+  /* WhatsApp: botón redondo flotante abajo a la derecha, apilado JUSTO
+     ENCIMA del selector de idioma (mismo estilo "FAB") — sustituye a las
+     píldoras "Llamar"/"WhatsApp" que antes iban debajo del nombre en la
+     cabecera, que quedaban recargadas. Solo aparece si la sucursal tiene
+     teléfono configurado. */
+  .whatsapp-fab { position: fixed; right: 16px; bottom: calc(76px + env(safe-area-inset-bottom, 0px)); z-index: 40; }
+  .whatsapp-fab-btn { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: #25D366; color: #06341f; font-size: 22px; line-height: 1; box-shadow: 0 6px 16px rgba(0,0,0,0.32); text-decoration: none; }
 
   .layout { display: flex; flex-direction: column; }
 
@@ -300,7 +300,6 @@
       <h1 id="companyName">Menú</h1>
       <div class="branch" id="branchName" style="display:none"></div>
       <div class="rating-badge" id="ratingBadge" style="display:none"></div>
-      <div class="contact-links" id="contactLinks" style="display:none"></div>
       <div class="header-switcher" id="branchSwitcher" style="display:none"></div>
     </div>
   </div>
@@ -316,6 +315,9 @@
 <div class="layout">
   <nav class="categories" id="categories" aria-label="Categorías del menú"></nav>
   <main id="main"><div class="loading">Cargando menú…</div></main>
+</div>
+<div class="whatsapp-fab" id="whatsappFab" style="display:none">
+  <a class="whatsapp-fab-btn" id="whatsappFabBtn" href="#" target="_blank" rel="noopener" aria-label="WhatsApp">💬</a>
 </div>
 <div class="lang-picker">
   <button class="lang-btn" id="langBtn" type="button" aria-label="Elegir idioma" aria-haspopup="true" aria-expanded="false">🌐</button>
@@ -448,9 +450,13 @@
   // con un solo '?slug=' nuevo, sin arrastrar el de la sucursal actual.
   var basePath = location.pathname.replace(/[^/]*$/, '');
 
-  var stored = null;
-  try { stored = localStorage.getItem('menuLang'); } catch (e) {}
-  var current = stored && LANGS[stored] ? stored : (navigator.language || 'en').slice(0, 2);
+  // Idioma: SIEMPRE el del móvil de quien abre el enlace, cada vez que
+  // lo abre — esto es un menú público que ven muchos clientes distintos
+  // en el mismo sitio (y a veces en el mismo dispositivo, ej. una
+  // tablet en la mesa), así que no debe "recordar" el idioma que eligió
+  // el cliente anterior. Si el idioma del móvil no es ninguno de los
+  // soportados, se abre en inglés.
+  var current = (navigator.language || 'en').slice(0, 2);
   if (!LANGS[current]) current = 'en';
   // Para que un lector de pantalla pronuncie el contenido en el idioma
   // correcto (y no siempre en español, que es lo que decía el <html>
@@ -616,23 +622,13 @@
     this.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
   });
 
-  function renderContactLinks(phone) {
-    var wrap = document.getElementById('contactLinks');
-    wrap.innerHTML = '';
+  function renderWhatsappFab(phone, displayName) {
+    var wrap = document.getElementById('whatsappFab');
+    var btn = document.getElementById('whatsappFabBtn');
     if (!phone) { wrap.style.display = 'none'; return; }
     var digits = String(phone).replace(/[^0-9+]/g, '');
-    var call = document.createElement('a');
-    call.href = 'tel:' + digits;
-    call.textContent = '📞 Llamar';
-    wrap.appendChild(call);
-    var wa = document.createElement('a');
-    wa.className = 'whatsapp';
-    wa.href = 'https://wa.me/' + digits.replace('+', '');
-    wa.target = '_blank';
-    wa.rel = 'noopener';
-    wa.textContent = '💬 WhatsApp';
-    wrap.appendChild(wa);
-    wrap.style.display = 'flex';
+    btn.href = 'https://wa.me/' + digits.replace('+', '') + '?text=' + encodeURIComponent('Hola, quiero hacer una consulta sobre ' + (displayName || ''));
+    wrap.style.display = 'block';
   }
 
   // Antes era un <select> nativo con los nombres en texto — ahora es un
@@ -659,8 +655,10 @@
       item.appendChild(flag);
       item.appendChild(label);
       item.onclick = function () {
+        // No se guarda en localStorage a propósito (ver arriba): este
+        // cambio manual solo vale para lo que queda de esta visita, no
+        // se queda "pegado" para el siguiente cliente que abra el menú.
         current = code;
-        try { localStorage.setItem('menuLang', current); } catch (e) {}
         document.documentElement.lang = current;
         closeLangMenu();
         // Antes solo se refrescaba renderContent(): los títulos de sección
@@ -1830,7 +1828,7 @@
         applyThemeColor(data.theme_color);
         applyCustomPalette(data);
         renderRatingBadge(data);
-        renderContactLinks(data.phone);
+        renderWhatsappFab(data.phone, displayName);
         var logoImg = document.getElementById('logoImg');
         if (data.logo_url) {
           logoImg.src = data.logo_url;
