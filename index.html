@@ -193,6 +193,22 @@
   .rate-review-cta { display: block; width: 100%; margin-top: 18px; height: 46px; line-height: 46px; border: none; border-radius: 12px; background: var(--accent); color: #fff; font-size: 15px; font-weight: 700; text-align: center; text-decoration: none; }
   .rate-review-skip { display: block; width: 100%; margin-top: 10px; background: none; border: none; color: var(--muted); font-size: 13px; padding: 8px; text-align: center; }
 
+  /* Aviso flotante tras un rato navegando ("¿postre? ¿nos valoras?") —
+     no es una notificación push de verdad (eso exigiría pedir permiso y
+     un service worker con backend que la dispare; aquí basta con un
+     aviso dentro de la propia página, que es lo que de verdad se puede
+     hacer sin más infraestructura), pero cumple el mismo papel mientras
+     el cliente sigue con la página abierta. */
+  .dessert-prompt { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%) translateY(20px); width: calc(100% - 32px); max-width: 420px; background: var(--card-bg); border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); padding: 18px 20px; z-index: 60; opacity: 0; pointer-events: none; transition: opacity 0.25s, transform 0.25s; text-align: center; }
+  .dessert-prompt.open { opacity: 1; pointer-events: auto; transform: translateX(-50%) translateY(0); }
+  .dessert-prompt-close { position: absolute; top: 8px; right: 10px; border: none; background: none; color: var(--muted); font-size: 14px; padding: 4px; }
+  .dessert-prompt-icon { font-size: 28px; margin-bottom: 6px; }
+  .dessert-prompt-text { font-size: 13.5px; color: var(--text); line-height: 1.4; margin-bottom: 14px; }
+  .dessert-prompt-actions { display: flex; justify-content: center; gap: 10px; }
+  .dessert-prompt-btn { border: none; border-radius: 10px; padding: 10px 16px; font-weight: 700; font-size: 13px; }
+  .dessert-prompt-btn.rate { background: var(--accent); color: #fff; }
+  .dessert-prompt-btn.dismiss { background: var(--bg); color: var(--muted); }
+
   .allergen-legend { margin: 32px 4px 0; padding: 14px; background: var(--card-bg); border-radius: 12px; font-size: 11px; color: var(--muted); line-height: 1.6; }
   .allergen-legend strong { display: block; color: var(--text); font-size: 12px; margin-bottom: 6px; }
   .allergen-legend .legend-items { display: flex; flex-wrap: wrap; gap: 6px 12px; }
@@ -255,6 +271,29 @@
     .mw-hero-title { font-size: 34px; }
   }
 
+  /* Chef(es) flotando sobre la portada: igual que en una web de
+     restaurante "de verdad", la(s) foto(s) del chef se asoman por
+     encima del borde superior del hero, a medio camino entre la
+     cabecera y la foto de portada — con 1 chef, centrada; con 2 o más,
+     en fila. Toca la foto para ir a su página. */
+  .mw-chef-float { position: relative; max-width: 900px; margin: 0 auto; display: flex; justify-content: center; gap: 14px; height: 0; z-index: 5; }
+  .mw-chef-float-item { position: relative; top: 28px; display: flex; flex-direction: column; align-items: center; gap: 4px; background: none; border: none; padding: 0; cursor: pointer; }
+  .mw-chef-float-avatar { width: 64px; height: 64px; border-radius: 50%; overflow: hidden; border: 3px solid #fff; box-shadow: 0 4px 14px rgba(0,0,0,0.35); background: var(--card-bg); }
+  .mw-chef-float-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .mw-chef-float-name { font-size: 10.5px; font-weight: 700; color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,0.6); max-width: 76px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* Página dedicada al chef: foto grande, nombre, biografía y sus platos
+     marcados como "especialidad del chef" (misma tarjeta que el resto
+     del menú, en miniatura). */
+  .mw-chef-card { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 10px 6px 22px; }
+  .mw-chef-card + .mw-chef-card { border-top: 1px solid #f0ece4; margin-top: 10px; padding-top: 22px; }
+  .mw-chef-photo { width: 140px; height: 140px; border-radius: 50%; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.2); background: #ece4d8; margin-bottom: 12px; }
+  .mw-chef-photo img { width: 100%; height: 100%; object-fit: cover; }
+  .mw-chef-name { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+  .mw-chef-bio { font-size: 13.5px; color: var(--muted); line-height: 1.5; max-width: 420px; }
+  .mw-chef-specials-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--accent); margin: 18px 0 10px; }
+  .mw-chef-specials { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; max-width: 420px; }
+
   /* Selector de sucursal: pastilla pequeña bajo el nombre de la empresa
      (solo aparece si hay más de una sucursal con dirección propia) para
      saltar a la carta/mini-web de otra sucursal sin salir de la
@@ -279,6 +318,11 @@
      aparece si advanced_web_enabled es true. */
   .header-menu-btn { border: none; background: none; color: #fff; font-size: 22px; line-height: 1; padding: 4px 8px 4px 0; flex-shrink: 0; }
   .header-menu-spacer { width: 34px; flex-shrink: 0; }
+  /* Compartir: siempre visible (en todas las sucursales, no solo las de
+     mini-web avanzada), flotando sobre el borde derecho de la cabecera
+     para no romper el centrado del título — abre el panel nativo de
+     compartir del móvil (ver headerShareBtn más abajo). */
+  .header-share-btn { position: absolute; right: 2px; top: 50%; transform: translateY(-50%); border: none; background: none; color: #fff; font-size: 19px; line-height: 1; padding: 8px; }
   .site-nav-dropdown {
     display: none; flex-direction: column; position: absolute; top: 100%; left: 12px;
     background: #fff; border-radius: 14px; box-shadow: 0 14px 32px rgba(0,0,0,0.3);
@@ -318,6 +362,7 @@
     </div>
     <div class="header-menu-spacer" id="headerMenuSpacer" style="display:none"></div>
     <div class="site-nav-dropdown" id="siteNavDropdown" role="menu"></div>
+    <button class="header-share-btn" id="headerShareBtn" type="button" aria-label="Compartir" title="Compartir">↗</button>
   </div>
 </header>
 <div class="rating-bar" id="ratingBar" style="display:none">
@@ -328,6 +373,7 @@
   <nav class="categories" id="categories" aria-label="Categorías del menú"></nav>
   <main id="main"><div class="loading">Cargando menú…</div></main>
 </div>
+<div id="mwFooter" style="display:none"></div>
 <div class="whatsapp-fab" id="whatsappFab" style="display:none">
   <a class="whatsapp-fab-btn" id="whatsappFabBtn" href="#" target="_blank" rel="noopener" aria-label="WhatsApp">💬</a>
 </div>
@@ -376,7 +422,8 @@
     vegano:       { icon: '🌿', es: 'Vegano',       en: 'Vegan' },
     sin_gluten:   { icon: '🌾', es: 'Sin gluten',   en: 'Gluten-free' },
     recomendado:  { icon: '⭐', es: 'Recomendado',  en: 'Recommended' },
-    nuevo:        { icon: '✨', es: 'Nuevo',        en: 'New' }
+    nuevo:        { icon: '✨', es: 'Nuevo',        en: 'New' },
+    especialidad_chef: { icon: '👨‍🍳', es: 'Especialidad del chef', en: "Chef's special" }
   };
   // Los 14 alérgenos de declaración obligatoria en la UE (Reglamento
   // 1169/2011) — es información legal, no decorativa, así que se pinta
@@ -432,6 +479,9 @@
     return entry[current] || entry.es;
   }
   var STAFF = [];
+  // Chef(es) de la sucursal (empleados marcados "Es chef" en la app),
+  // para la foto flotante sobre Inicio y la página dedicada.
+  var CHEFS = [];
   // Enlace de "pedir reseña" de Google de esta sucursal (lo pega el dueño
   // en Valery, ver CompanyBranch.google_review_url) — si existe, a quien
   // valore con 5 estrellas se le invita también a dejar reseña pública.
@@ -565,11 +615,12 @@
   // id (o varios) de los bloques que construye renderMiniWeb/el propio
   // HTML; showPage() los intercambia.
   var PAGE_GROUPS = {
-    inicio: ['mwHero', 'mwReviews'],
+    inicio: ['mwHero', 'mwGallery', 'mwReviews'],
     menu: ['menuLayout'],
     horario: ['mwHours'],
     fotos: ['mwGallery'],
-    mapa: ['mwMap']
+    mapa: ['mwMap'],
+    chef: ['mwChef']
   };
 
   function showPage(key) {
@@ -615,6 +666,7 @@
     if (data.opening_hours || data.phone) sections.push({ key: 'horario', label: 'Horario' });
     if (Array.isArray(data.gallery_photos) && data.gallery_photos.length) sections.push({ key: 'fotos', label: 'Fotos' });
     if (data.address || data.city) sections.push({ key: 'mapa', label: 'Mapa' });
+    if (CHEFS.length) sections.push({ key: 'chef', label: CHEFS.length > 1 ? 'Nuestros chefs' : 'El chef' });
 
     var siblings = (Array.isArray(data.siblings) ? data.siblings : []).filter(function (s) { return s && s.slug; });
 
@@ -674,6 +726,34 @@
     if (dropdown && !dropdown.contains(e.target) && e.target !== menuBtn) {
       dropdown.classList.remove('open');
       if (menuBtn) menuBtn.setAttribute('aria-expanded', 'false');
+    }
+  });
+
+  // Compartir: en todas las sucursales (no solo la mini-web avanzada),
+  // visible en la cabecera sea cual sea la "página" activa. Usa el panel
+  // nativo de compartir del móvil (Web Share API) en vez de un enlace
+  // de WhatsApp fijo — en iPhone/Android ese panel YA incluye AirDrop,
+  // Mensajes, WhatsApp, Correo, etc., así que "acercar dos iPhones" para
+  // pasar la carta es, en la práctica, tocar Compartir y elegir AirDrop:
+  // no existe una API web para detectar el toque físico entre teléfonos,
+  // pero AirDrop (que sí hace eso) aparece ahí como una opción más.
+  // Donde no existe este panel (la mayoría de navegadores de escritorio),
+  // se cae a copiar el enlace al portapapeles.
+  document.getElementById('headerShareBtn').addEventListener('click', function () {
+    var name = (document.getElementById('companyName').textContent || 'este sitio').trim();
+    var shareData = { title: name, text: 'Echa un vistazo a ' + name, url: location.href };
+    if (navigator.share) {
+      navigator.share(shareData).catch(function () {});
+      return;
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(location.href).then(function () {
+        alert('Enlace copiado');
+      }).catch(function () {
+        window.open('https://wa.me/?text=' + encodeURIComponent(shareData.text + ' ' + shareData.url), '_blank');
+      });
+    } else {
+      window.open('https://wa.me/?text=' + encodeURIComponent(shareData.text + ' ' + shareData.url), '_blank');
     }
   });
 
@@ -1812,12 +1892,18 @@
   // Pie de página: nombre, dirección/teléfono (NAP, útil para el SEO
   // local) e iconos de redes sociales — solo se muestran los enlaces que
   // el dueño haya rellenado en "Redes sociales" (Ajustes > mini-web
-  // avanzada). Vive dentro de #miniWeb, fuera de PAGE_GROUPS, así que se
-  // ve en todas las "páginas" de la navegación (Inicio, Horario, etc.).
-  function buildFooter(data, displayName) {
-    var footer = document.createElement('div');
+  // avanzada). Vive en su PROPIO elemento #mwFooter, colocado en el HTML
+  // después de #menuLayout (no dentro de #miniWeb, que en el DOM va
+  // ANTES del menú) — si no, al mostrar la "página" Menú se veía el pie
+  // de página por encima de la carta, porque #miniWeb entero queda antes
+  // en el documento aunque el pie no estuviera oculto. Al ser un
+  // elemento aparte, fuera de PAGE_GROUPS, se ve igual en todas las
+  // "páginas" pero siempre al final de verdad.
+  function renderFooter(data, displayName) {
+    var footer = document.getElementById('mwFooter');
+    footer.innerHTML = '';
+    if (data.website_url && !data.advanced_web_enabled) { footer.style.display = 'none'; return; }
     footer.className = 'mw-footer';
-    footer.id = 'mwFooter';
 
     var inner = document.createElement('div');
     inner.className = 'mw-footer-inner';
@@ -1869,7 +1955,181 @@
     inner.appendChild(copy);
 
     footer.appendChild(inner);
-    return footer;
+    footer.style.display = 'block';
+  }
+
+  // Aviso tras un rato de visita: "¿qué tal todo? ¿postre, o nos
+  // valoras?" — un empujoncito suave hacia el postre/la reseña sin tener
+  // que molestar al personal. Solo en la mini-web avanzada (para no
+  // añadir esto a sucursales que no lo pidieron), y solo una vez por
+  // visita; si el cliente ya cambió de pestaña/app se espera a que
+  // vuelva en vez de disparar en segundo plano.
+  var DESSERT_PROMPT_DELAY_MS = 10 * 60 * 1000; // 10 minutos
+  var dessertPromptShown = false;
+
+  function scheduleDessertPrompt(data, displayName) {
+    if (!data.advanced_web_enabled || dessertPromptShown) return;
+    setTimeout(function () {
+      if (dessertPromptShown) return;
+      if (document.hidden) {
+        document.addEventListener('visibilitychange', function onVisible() {
+          if (!document.hidden && !dessertPromptShown) {
+            showDessertPrompt(displayName);
+          }
+          document.removeEventListener('visibilitychange', onVisible);
+        });
+        return;
+      }
+      showDessertPrompt(displayName);
+    }, DESSERT_PROMPT_DELAY_MS);
+  }
+
+  function closeDessertPrompt() {
+    var el = document.getElementById('dessertPrompt');
+    if (!el) return;
+    el.classList.remove('open');
+    setTimeout(function () { el.remove(); }, 250);
+  }
+
+  function showDessertPrompt(displayName) {
+    if (document.getElementById('dessertPrompt') || document.getElementById('rateOverlay').classList.contains('open')) return;
+    dessertPromptShown = true;
+    var el = document.createElement('div');
+    el.id = 'dessertPrompt';
+    el.className = 'dessert-prompt';
+    el.setAttribute('role', 'dialog');
+    el.setAttribute('aria-label', '¿Qué tal todo?');
+    el.innerHTML =
+      '<button class="dessert-prompt-close" aria-label="Cerrar">✕</button>' +
+      '<div class="dessert-prompt-icon">🍰</div>' +
+      '<div class="dessert-prompt-text">¿Qué tal todo? Si te apetece un postre, avisa a tu camarero/a — y si te está gustando, nos ayuda mucho que nos valores.</div>' +
+      '<div class="dessert-prompt-actions">' +
+      '<button class="dessert-prompt-btn dismiss" id="dessertPromptDismiss">Ahora no</button>' +
+      '<button class="dessert-prompt-btn rate" id="dessertPromptRate">⭐ Valorar</button>' +
+      '</div>';
+    document.body.appendChild(el);
+    requestAnimationFrame(function () { el.classList.add('open'); });
+    document.getElementById('dessertPromptDismiss').onclick = closeDessertPrompt;
+    el.querySelector('.dessert-prompt-close').onclick = closeDessertPrompt;
+    document.getElementById('dessertPromptRate').onclick = function () {
+      closeDessertPrompt();
+      var rateFabBtn = document.getElementById('rateFabBtn');
+      if (rateFabBtn) rateFabBtn.click();
+    };
+  }
+
+  // Foto(s) del chef flotando sobre la portada, como en cualquier web de
+  // restaurante — con 1 chef sale centrada, con 2+ en fila. Toca la foto
+  // para ir a su página dedicada (buildChefPage). Si el chef no tiene
+  // foto, no se muestra flotando (no hay nada que "flote"), pero sigue
+  // teniendo su página accesible desde el menú de navegación.
+  function buildChefFloat(chefs) {
+    var withPhoto = chefs.filter(function (c) { return c.photo_url; });
+    if (!withPhoto.length) return null;
+    var wrap = document.createElement('div');
+    wrap.className = 'mw-chef-float';
+    withPhoto.slice(0, 3).forEach(function (c) {
+      var item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'mw-chef-float-item';
+      item.setAttribute('aria-label', c.name);
+      item.onclick = function () { showPage('chef'); };
+      var avatar = document.createElement('div');
+      avatar.className = 'mw-chef-float-avatar';
+      var img = document.createElement('img');
+      img.src = c.photo_url;
+      img.alt = c.name;
+      avatar.appendChild(img);
+      item.appendChild(avatar);
+      var name = document.createElement('div');
+      name.className = 'mw-chef-float-name';
+      name.textContent = c.name;
+      item.appendChild(name);
+      wrap.appendChild(item);
+    });
+    return wrap;
+  }
+
+  // Página dedicada al chef (o chefs): foto grande, nombre, biografía y,
+  // si hay platos marcados con la etiqueta "especialidad_chef" en el
+  // editor de menú, una pequeña selección de esos platos debajo.
+  function buildChefPage(chefs) {
+    var section = document.createElement('div');
+    section.className = 'mini-web-section';
+    section.id = 'mwChef';
+
+    var specials = ITEMS.filter(function (it) { return Array.isArray(it.tags) && it.tags.indexOf('especialidad_chef') !== -1; });
+
+    chefs.forEach(function (c) {
+      var card = document.createElement('div');
+      card.className = 'mw-chef-card';
+
+      var photo = document.createElement('div');
+      photo.className = 'mw-chef-photo';
+      if (c.photo_url) {
+        var img = document.createElement('img');
+        img.src = c.photo_url;
+        img.alt = c.name;
+        photo.appendChild(img);
+      } else {
+        photo.style.display = 'flex';
+        photo.style.alignItems = 'center';
+        photo.style.justifyContent = 'center';
+        photo.innerHTML = '<span style="font-size:40px;">👨‍🍳</span>';
+      }
+      card.appendChild(photo);
+
+      var name = document.createElement('div');
+      name.className = 'mw-chef-name';
+      name.textContent = c.name;
+      card.appendChild(name);
+
+      if (c.bio) {
+        var bio = document.createElement('div');
+        bio.className = 'mw-chef-bio';
+        bio.textContent = c.bio;
+        card.appendChild(bio);
+      }
+
+      section.appendChild(card);
+    });
+
+    if (specials.length) {
+      var title = document.createElement('div');
+      title.className = 'mw-chef-specials-title';
+      title.textContent = '👨‍🍳 Especialidades del chef';
+      section.appendChild(title);
+
+      var grid = document.createElement('div');
+      grid.className = 'mw-chef-specials';
+      specials.forEach(function (it) {
+        var card = document.createElement('div');
+        card.className = 'card';
+        var img = document.createElement('img');
+        img.className = 'thumb';
+        img.loading = 'lazy';
+        img.alt = fieldFor(it, 'name') || '';
+        if (it.image_url) img.src = it.image_url; else img.style.display = 'none';
+        card.appendChild(img);
+        var body = document.createElement('div');
+        body.className = 'card-body';
+        var nm = document.createElement('div');
+        nm.className = 'card-name';
+        nm.textContent = fieldFor(it, 'name');
+        body.appendChild(nm);
+        if (it.price !== null && it.price !== undefined) {
+          var price = document.createElement('div');
+          price.className = 'card-price';
+          price.textContent = Number(it.price).toFixed(2) + ' €';
+          body.appendChild(price);
+        }
+        card.appendChild(body);
+        grid.appendChild(card);
+      });
+      section.appendChild(grid);
+    }
+
+    return section;
   }
 
   // Mini-web: para sucursales sin página propia (website_url vacío), o
@@ -1884,6 +2144,8 @@
 
     wrap.innerHTML = '';
     wrap.className = 'mini-web';
+    var chefFloat = CHEFS.length ? buildChefFloat(CHEFS) : null;
+    if (chefFloat) wrap.appendChild(chefFloat);
     wrap.appendChild(buildHero(data, displayName));
 
     var hasGallery = Array.isArray(data.gallery_photos) && data.gallery_photos.length > 0;
@@ -2020,7 +2282,9 @@
       wrap.appendChild(reviewsSection);
     }
 
-    wrap.appendChild(buildFooter(data, displayName));
+    if (CHEFS.length) {
+      wrap.appendChild(buildChefPage(CHEFS));
+    }
 
     wrap.style.display = 'block';
   }
@@ -2091,6 +2355,7 @@
         selectedCategory = CATEGORY_ORDER[0] || null;
 
         STAFF = Array.isArray(data.staff) ? data.staff.filter(function (p) { return p && p.id && p.name; }) : [];
+        CHEFS = Array.isArray(data.chefs) ? data.chefs.filter(function (c) { return c && c.id && c.name; }) : [];
         GOOGLE_REVIEW_URL = data.google_review_url || null;
 
         renderLangs();
@@ -2102,6 +2367,8 @@
         adjustStickyOffsets();
         applySeoMetadata(data, displayName);
         renderMiniWeb(data, displayName);
+        renderFooter(data, displayName);
+        scheduleDessertPrompt(data, displayName);
         // Las "páginas" (Inicio/Menú/Horario/Fotos/Mapa) solo existen
         // una vez que renderMiniWeb ha construido sus bloques — por eso
         // esto va al final, después de todo lo demás.
