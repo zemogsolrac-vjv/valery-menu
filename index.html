@@ -563,7 +563,11 @@
     linksWrap.innerHTML = '';
     dropdown.innerHTML = '';
 
-    if (!data.advanced_web_enabled || data.website_url) {
+    // Si el dueño activó la página avanzada a propósito, eso manda —
+    // aunque la sucursal tenga un website_url guardado (por ejemplo,
+    // sincronizado desde la ficha de Google), se usa la página de
+    // Valery de todas formas en vez de asumir que "ya tiene web propia".
+    if (!data.advanced_web_enabled) {
       nav.style.display = 'none';
       return;
     }
@@ -1725,13 +1729,15 @@
     return hero;
   }
 
-  // Mini-web: solo para sucursales SIN página propia (website_url
-  // vacío) — hero de portada, contacto/horario/mapa, botón de reservar
-  // por WhatsApp o llamada, galería de fotos del local, y 2-3 reseñas
-  // reales destacadas. Se inserta entre la cabecera y el menú.
+  // Mini-web: para sucursales sin página propia (website_url vacío), o
+  // para cualquiera con la página avanzada activada a propósito (ese
+  // interruptor manda sobre el website_url guardado) — hero de portada,
+  // contacto/horario/mapa, botón de reservar por WhatsApp o llamada,
+  // galería de fotos del local, y 2-3 reseñas reales destacadas. Se
+  // inserta entre la cabecera y el menú.
   function renderMiniWeb(data, displayName) {
     var wrap = document.getElementById('miniWeb');
-    if (data.website_url) { wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
+    if (data.website_url && !data.advanced_web_enabled) { wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
 
     wrap.innerHTML = '';
     wrap.className = 'mini-web';
