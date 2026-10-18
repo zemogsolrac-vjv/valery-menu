@@ -330,6 +330,7 @@ var bestItems = function () {
 };
 var digits = function (p) { return String(p || '').replace(/[^0-9+]/g, ''); };
 var waUrl = function () { return D.phone ? 'https://wa.me/' + digits(D.phone).replace('+', '') + '?text=' + encodeURIComponent(uiRaw('whatsappReserveMsg') + ' ' + NAME) : null; };
+var mapsHref = function () { if (D.google_maps_url) return D.google_maps_url; var q = mapQuery(); return q ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(q) : null; };
 var mapQuery = function () { var p = [D.address, D.postal_code, D.city].filter(Boolean); return p.length ? p.join(', ') : (D.city || ''); };
 
 /* ========== RENDER ========== */
@@ -366,7 +367,7 @@ function renderQuick() {
   var q = $('#quick'), items = [];
   var ic = function (p) { return '<svg viewBox="0 0 24 24" class="h-[18px] w-[18px]" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' + p + '</svg>'; };
   if (D.phone) items.push({ href: 'tel:' + digits(D.phone), label: tx('qCall') || ui('reserveCall'), icon: ic('<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2Z"/>') });
-  if (mapQuery()) items.push({ href: 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(mapQuery()), label: tx('qMap'), blank: 1, icon: ic('<path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.5"/>') });
+  if (mapsHref()) items.push({ href: mapsHref(), label: tx('qMap'), blank: 1, icon: ic('<path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.5"/>') });
   if (waUrl()) items.push({ href: waUrl(), label: 'WhatsApp', blank: 1, icon: ic('<path d="M4 20l1.2-4A8 8 0 1 1 8 18.8L4 20Z"/>') });
   if (D.opening_hours) items.push({ href: '#info', label: ui('sectionHorario'), icon: ic('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>') });
   q.hidden = !items.length;
@@ -427,8 +428,8 @@ function renderHome() {
   ab.innerHTML = addr ? '<p class="text-[14.5px] leading-relaxed text-ink/75">📍 ' + esc(addr) + '</p>' + (D.phone ? '<p class="mt-1 text-[14.5px] text-ink/75">📞 <a href="tel:' + esc(digits(D.phone)) + '" class="font-medium">' + esc(D.phone) + '</a></p>' : '') : '';
   $('#hoursBox').classList.toggle('hidden', !D.opening_hours);
   $('#hoursT').textContent = ui('sectionHorario'); $('#hoursTxt').textContent = D.opening_hours || '';
-  var mb = $('#mapBox'); mb.classList.toggle('hidden', !mapQuery());
-  mb.innerHTML = mapQuery() ? '<iframe loading="lazy" class="h-56 w-full rounded-2xl" style="border:0" src="https://www.google.com/maps?q=' + encodeURIComponent(mapQuery()) + '&output=embed" aria-label="Mapa de ' + esc(NAME) + '"></iframe>' : '';
+  var mb = $('#mapBox'); mb.classList.toggle('hidden', !mapsHref());
+  mb.innerHTML = D.google_maps_url ? '<a href="' + esc(D.google_maps_url) + '" target="_blank" rel="noopener" class="press flex items-center justify-center gap-2 rounded-2xl bg-white/70 px-4 py-3.5 text-[14.5px] font-semibold ring-1 ring-black/5">📍 ' + esc(tx('qMap')) + '</a>' : mapQuery() ? '<iframe loading="lazy" class="h-56 w-full rounded-2xl" style="border:0" src="https://www.google.com/maps?q=' + encodeURIComponent(mapQuery()) + '&output=embed" aria-label="Mapa de ' + esc(NAME) + '"></iframe>' : '';
   var rb = $('#reviewBtn'); rb.hidden = !D.google_review_url;
   if (D.google_review_url) { rb.href = D.google_review_url; $('#reviewTxt').textContent = rl('reviewCta'); }
   var soc = [['facebook_url', 'Facebook'], ['instagram_url', 'Instagram'], ['tiktok_url', 'TikTok'], ['twitter_url', 'X']].filter(function (s) { return D[s[0]]; });
