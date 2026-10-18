@@ -278,7 +278,7 @@ var ANON_KEY = 'sb_publishable_PqNnPS4GKsdJDSn2JtI1oQ_ecsozI1R';
 var BESTSELLER_CATEGORY = '__bestsellers__';
 var EX = {
   qCall:   { es:'Llamar', en:'Call', fr:'Appeler', it:'Chiama', pt:'Ligar', de:'Anrufen' },
-  qMap:    { es:'Cómo llegar', en:'Directions', fr:'Itinéraire', it:'Indicazioni', pt:'Como chegar', de:'Route' },
+  qMap:    { es:'Iniciar ruta', en:'Start route', fr:'Démarrer', it:'Avvia percorso', pt:'Iniciar rota', de:'Route starten' },
   qWa:     { es:'WhatsApp', en:'WhatsApp' },
   aboutEy: { es:'Nuestra esencia', en:'Our essence', fr:'Notre essence', it:'La nostra essenza', pt:'A nossa essência', de:'Unsere Philosophie' },
   hiEy:    { es:'Lo más pedido', en:'Most loved', fr:'Les plus aimés', it:'I più amati', pt:'Os mais pedidos', de:'Beliebteste' },
@@ -330,7 +330,13 @@ var bestItems = function () {
 };
 var digits = function (p) { return String(p || '').replace(/[^0-9+]/g, ''); };
 var waUrl = function () { return D.phone ? 'https://wa.me/' + digits(D.phone).replace('+', '') + '?text=' + encodeURIComponent(uiRaw('whatsappReserveMsg') + ' ' + NAME) : null; };
-var mapsHref = function () { if (D.google_maps_url) return D.google_maps_url; var q = mapQuery(); return q ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(q) : null; };
+var mapsHref = function () {
+  // Ruta directa desde donde está el cliente hasta el local (Google Maps la abre lista para navegar)
+  var dest = [NAME, D.address, D.postal_code, D.city].filter(Boolean).join(', ');
+  if (D.google_place_id) return 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(dest) + '&destination_place_id=' + encodeURIComponent(D.google_place_id) + '&travelmode=driving&dir_action=navigate';
+  if (dest) return 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(dest) + '&travelmode=driving&dir_action=navigate';
+  return D.google_maps_url || null;
+};
 var mapQuery = function () { var p = [D.address, D.postal_code, D.city].filter(Boolean); return p.length ? p.join(', ') : (D.city || ''); };
 
 /* ========== RENDER ========== */
@@ -429,7 +435,7 @@ function renderHome() {
   $('#hoursBox').classList.toggle('hidden', !D.opening_hours);
   $('#hoursT').textContent = ui('sectionHorario'); $('#hoursTxt').textContent = D.opening_hours || '';
   var mb = $('#mapBox'); mb.classList.toggle('hidden', !mapsHref());
-  mb.innerHTML = D.google_maps_url ? '<a href="' + esc(D.google_maps_url) + '" target="_blank" rel="noopener" class="press flex items-center justify-center gap-2 rounded-2xl bg-white/70 px-4 py-3.5 text-[14.5px] font-semibold ring-1 ring-black/5">📍 ' + esc(tx('qMap')) + '</a>' : mapQuery() ? '<iframe loading="lazy" class="h-56 w-full rounded-2xl" style="border:0" src="https://www.google.com/maps?q=' + encodeURIComponent(mapQuery()) + '&output=embed" aria-label="Mapa de ' + esc(NAME) + '"></iframe>' : '';
+  mb.innerHTML = (D.google_maps_url || D.google_place_id) ? '<a href="' + esc(mapsHref()) + '" target="_blank" rel="noopener" class="press flex items-center justify-center gap-2 rounded-2xl bg-white/70 px-4 py-3.5 text-[14.5px] font-semibold ring-1 ring-black/5">📍 ' + esc(tx('qMap')) + '</a>' : mapQuery() ? '<iframe loading="lazy" class="h-56 w-full rounded-2xl" style="border:0" src="https://www.google.com/maps?q=' + encodeURIComponent(mapQuery()) + '&output=embed" aria-label="Mapa de ' + esc(NAME) + '"></iframe>' : '';
   var rb = $('#reviewBtn'); rb.hidden = !D.google_review_url;
   if (D.google_review_url) { rb.href = D.google_review_url; $('#reviewTxt').textContent = rl('reviewCta'); }
   var soc = [['facebook_url', 'Facebook'], ['instagram_url', 'Instagram'], ['tiktok_url', 'TikTok'], ['twitter_url', 'X']].filter(function (s) { return D[s[0]]; });
