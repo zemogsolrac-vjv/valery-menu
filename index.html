@@ -660,7 +660,11 @@
     @keyframes proAnnIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
     html[data-pro] .header-inner { gap: 8px; }
     html[data-pro] .header-text { flex: 1 1 auto; min-width: 0; }
-    html[data-pro] .header-text h1 { font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    html[data-pro] .header-text h1 { font-size: 16px; line-height: 1.15; white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+    html[data-pro] .header-text .branch { display: none; }
+    html[data-pro] .pro-burger { width: 34px; height: 34px; font-size: 20px; }
+    html[data-pro] .header-inner { gap: 6px; }
+    html[data-pro] .pro-hcta { padding: 8px 13px !important; font-size: 13px !important; }
     html[data-pro] header .logo { max-height: 34px; max-width: 34px; }
     .pro-hcta { display: inline-block !important; padding: 9px 16px !important; font-size: 13.5px !important; }
     .pro-nav { position: absolute; top: calc(100% + 14px); left: -4px; right: -4px; flex-direction: column; gap: 0; padding: 8px; background: rgba(255,252,246,.98); border-radius: 22px; box-shadow: 0 24px 48px -16px rgba(40,30,15,.35); border: 1px solid rgba(0,0,0,.06); z-index: 40; }
