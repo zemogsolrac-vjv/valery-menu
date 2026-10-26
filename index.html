@@ -3768,7 +3768,9 @@
         // Las "páginas" (Inicio/Menú/Horario/Fotos/Mapa) solo existen
         // una vez que renderMiniWeb ha construido sus bloques — por eso
         // esto va al final, después de todo lo demás.
-        if (data.advanced_web_enabled && document.getElementById('headerMenuBtn').style.display !== 'none') {
+        if (PRO && PAGE_GROUPS.inicio) {
+          showPage(currentPageKey || 'inicio', true);
+        } else if (data.advanced_web_enabled && document.getElementById('headerMenuBtn').style.display !== 'none') {
           showPage('inicio');
         }
       })
