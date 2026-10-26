@@ -647,7 +647,27 @@
   html[data-pro] .pro-nav a { opacity: .78; position: relative; padding: 6px 0; transition: opacity .2s; }
   html[data-pro] .pro-nav a::after { content: ""; position: absolute; left: 0; right: 100%; bottom: 0; height: 1.5px; background: var(--accent); transition: right .25s ease; }
   html[data-pro] .pro-nav a:hover::after { right: 0; }
-  @media (min-width: 900px) { html[data-pro] #headerShareBtn { display: none !important; } }
+  @media (min-width: 900px) { html[data-pro] #headerShareBtn { display: none !important; } .pro-burger { display: none !important; } }
+  /* Móvil: cintillo de una línea, cabecera compacta y menú desplegable */
+  html[data-pro] #headerMenuBtn, html[data-pro] #headerMenuSpacer { display: none !important; }
+  .pro-burger { width: 40px; height: 40px; border: 0; border-radius: 50%; background: transparent; color: var(--text); font-size: 22px; line-height: 1; cursor: pointer; flex-shrink: 0; }
+  html[data-pro] #headerShareBtn { color: var(--text) !important; }
+  @media (max-width: 899px) {
+    .pro-announce { justify-content: center; text-align: center; flex-wrap: nowrap; padding: 8px 16px; font-size: 12.5px; }
+    .pro-announce span { display: none; }
+    .pro-announce span.on { display: block; animation: proAnnIn .5s ease; }
+    @keyframes proAnnIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+    html[data-pro] .header-inner { gap: 8px; }
+    html[data-pro] .header-text { flex: 1 1 auto; min-width: 0; }
+    html[data-pro] .header-text h1 { font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    html[data-pro] header .logo { max-height: 34px; max-width: 34px; }
+    .pro-hcta { display: inline-block !important; padding: 9px 16px !important; font-size: 13.5px !important; }
+    .pro-nav { position: absolute; top: calc(100% + 14px); left: -4px; right: -4px; flex-direction: column; gap: 0; padding: 8px; background: rgba(255,252,246,.98); border-radius: 22px; box-shadow: 0 24px 48px -16px rgba(40,30,15,.35); border: 1px solid rgba(0,0,0,.06); z-index: 40; }
+    .pro-nav.open { display: flex; }
+    .pro-nav a { padding: 15px 18px; font-size: 16.5px; opacity: 1; border-bottom: 1px solid rgba(0,0,0,.06); }
+    .pro-nav a:last-child { border-bottom: 0; }
+    html[data-pro] .pro-nav a::after { display: none; }
+  }
   .pro-announce { background: #2a2a27; padding-top: 9px; padding-bottom: 9px; letter-spacing: .01em; }
   .pro-announce span::before { color: var(--gold); }
   .pro-btn { border-radius: 999px; padding: 15px 32px; letter-spacing: .01em; transition: transform .25s ease, box-shadow .25s ease, background .25s ease; }
@@ -1842,8 +1862,17 @@
     var ann = Array.isArray(t.announcements) ? t.announcements.filter(Boolean) : [];
     if (ann.length) {
       var bar = pEl('div', 'pro-announce'); bar.id = 'proAnnounce';
-      ann.slice(0, 3).forEach(function (a) { var s = pEl('span', '', a); bar.appendChild(s); });
+      ann.slice(0, 3).forEach(function (a, i) { var s = pEl('span', i === 0 ? 'on' : '', a); bar.appendChild(s); });
       document.body.insertBefore(bar, document.querySelector('header'));
+      // En móvil se muestra un aviso cada vez, rotando (una sola línea limpia)
+      if (window.__proAnnT) clearInterval(window.__proAnnT);
+      var spans = bar.querySelectorAll('span');
+      if (spans.length > 1) {
+        var ai = 0;
+        window.__proAnnT = setInterval(function () {
+          spans[ai].classList.remove('on'); ai = (ai + 1) % spans.length; spans[ai].classList.add('on');
+        }, 3800);
+      }
     }
 
     // Menú en línea + botón de cabecera
@@ -1863,6 +1892,23 @@
     links.forEach(function (l) { var a = pEl('a', '', l.label); a.href = '#'; a.onclick = function (e) { e.preventDefault(); l.go(); }; nav.appendChild(a); });
     var share = document.getElementById('headerShareBtn');
     inner.insertBefore(nav, share);
+    // Botón hamburguesa propio (móvil): abre el mismo menú como panel desplegable
+    var oldBurger = document.getElementById('proBurger'); if (oldBurger) oldBurger.remove();
+    var burger = pEl('button', 'pro-burger', '☰'); burger.id = 'proBurger'; burger.type = 'button';
+    burger.setAttribute('aria-label', 'Menú'); burger.setAttribute('aria-expanded', 'false');
+    burger.onclick = function (e) {
+      e.stopPropagation();
+      var o = nav.classList.toggle('open'); burger.textContent = o ? '✕' : '☰'; burger.setAttribute('aria-expanded', o ? 'true' : 'false');
+    };
+    nav.addEventListener('click', function () { nav.classList.remove('open'); burger.textContent = '☰'; });
+    if (!window.__proBurgerDoc) {
+      window.__proBurgerDoc = true;
+      document.addEventListener('click', function () {
+        var n = document.getElementById('proNav'), b = document.getElementById('proBurger');
+        if (n && n.classList.contains('open')) { n.classList.remove('open'); if (b) b.textContent = '☰'; }
+      });
+    }
+    inner.insertBefore(burger, inner.firstChild);
     var pri = pPrimaryHref(data, displayName);
     if (pri) {
       var hc = proButton((d.hero && d.hero.cta_primary) || (SHOW_MENU ? 'Reservar' : 'Contactar'), pri.href, pri.blank, 'primary');
