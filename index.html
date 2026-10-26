@@ -692,6 +692,33 @@
   .pro-prose th { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--gold); }
   .pro-article-cta { margin-top: 46px; padding: 34px 28px; border-radius: 28px; background: color-mix(in srgb, var(--accent) 10%, var(--bg)); text-align: center; }
   .pro-article-cta h3 { font-family: var(--serif); font-weight: 500; font-size: 26px; margin: 0 0 14px; }
+  /* Banner editable */
+  .pro-banner { width: calc(100% - 32px) !important; max-width: 1120px; margin: 18px auto 0; border-radius: 30px; padding: 30px 32px; color: var(--accent-ink, #fff); background: var(--dsg-grad, var(--accent)); background-size: cover; background-position: center; box-shadow: 0 24px 50px -34px rgba(0,0,0,.45); }
+  .pro-banner.has-img { min-height: 230px; display: flex; align-items: center; color: #fff; padding: 46px 40px; }
+  .pro-banner-inner { display: flex; align-items: center; justify-content: space-between; gap: 22px; flex-wrap: wrap; width: 100%; }
+  .pro-banner-title { font-family: var(--serif); font-weight: 500; font-size: clamp(24px, 4vw, 38px); line-height: 1.1; margin: 0 0 8px; }
+  .pro-banner-p { margin: 0; font-size: 16px; line-height: 1.5; opacity: .92; max-width: 560px; }
+  .pro-banner .pro-btn.primary { background: #fff; color: #222; }
+  /* Equipo */
+  .pro-team-grid { display: grid; gap: 22px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+  .pro-team-card { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .pro-team-photo { width: 168px; height: 168px; border-radius: 50%; background: color-mix(in srgb, var(--accent) 16%, var(--bg)) center / cover no-repeat; display: flex; align-items: center; justify-content: center; font-family: var(--serif); font-size: 54px; color: var(--accent); box-shadow: 0 24px 40px -26px rgba(0,0,0,.5); margin-bottom: 8px; }
+  /* Catálogo y tarifas */
+  .pro-chips { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin: 0 0 28px; }
+  .pro-chip { border: 1px solid color-mix(in srgb, var(--text) 16%, transparent); background: transparent; color: var(--text); border-radius: 999px; padding: 9px 18px; font: inherit; font-size: 14px; cursor: pointer; transition: all .2s; }
+  .pro-chip:hover { border-color: var(--accent); }
+  .pro-chip.active { background: var(--accent); color: var(--accent-ink, #fff); border-color: var(--accent); }
+  .pro-cat-grid { display: grid; gap: 20px; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
+  .pro-cat-card { padding: 0; overflow: hidden; }
+  .pro-cat-card > :not(.pro-cat-img) { margin-left: 22px; margin-right: 22px; }
+  .pro-cat-card > :first-child:not(.pro-cat-img) { margin-top: 22px; }
+  .pro-cat-card > :last-child { margin-bottom: 22px; }
+  .pro-cat-img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; display: block; background: color-mix(in srgb, var(--accent) 10%, var(--bg)); }
+  .pro-cat-card .pro-btn { padding: 11px 20px; font-size: 14px; }
+  .pro-rates { display: grid; gap: 22px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+  .pro-row { display: flex; justify-content: space-between; gap: 14px; padding: 11px 0; border-bottom: 1px dashed color-mix(in srgb, var(--text) 18%, transparent); font-size: 15px; }
+  .pro-row:last-child { border-bottom: 0; }
+  .pro-row b { color: var(--accent); white-space: nowrap; font-weight: 600; }
   html[data-pro] #mwHours, html[data-pro] #mwMap, html[data-pro] #mwGallery, html[data-pro] #mwReviews { max-width: 1120px; margin-left: auto; margin-right: auto; width: calc(100% - 40px); }
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1166,6 +1193,8 @@
     if (pri) row.appendChild(proButton(h.cta_primary || (SHOW_MENU ? 'Reservar' : 'Contactar'), pri.href, pri.blank, 'primary'));
     if (SHOW_MENU && ITEMS.length) {
       row.appendChild(proButton(h.cta_secondary || 'Ver carta', '#', false, 'ghost', function () { showPage('menu'); }));
+    } else if (proCatalog(data).length) {
+      row.appendChild(proButton(h.cta_secondary || (proKind(data) === 'services' ? 'Ver servicios' : 'Ver productos'), '#', false, 'ghost', function () { showPage('catalogo'); }));
     } else if (ITEMS.length || (Array.isArray(d.services) && d.services.length)) {
       row.appendChild(proButton(h.cta_secondary || 'Ver más', '#', false, 'ghost', function () { proGo('proServices'); }));
     }
@@ -1190,9 +1219,168 @@
     return sec;
   }
 
+  // ===== Banner editable, equipo, catálogo (productos/servicios) y tarifas =====
+  function proCatalog(data) { return Array.isArray(data.catalog) ? data.catalog : []; }
+  function proKind(data) { return SHOW_MENU ? 'menu' : (data.catalog_kind === 'products' ? 'products' : 'services'); }
+
+  function buildProBanner(data, displayName) {
+    var b = data.banner;
+    if (!b || b.enabled === false || (!b.title && !b.text && !b.image_url)) return null;
+    var sec = pEl('section', 'pro-banner'); sec.id = 'proBanner';
+    if (/^https:\/\//.test(b.image_url || '')) {
+      sec.style.backgroundImage = 'linear-gradient(90deg, rgba(0,0,0,.62), rgba(0,0,0,.2)), url("' + String(b.image_url).replace(/"/g, '%22') + '")';
+      sec.className += ' has-img';
+    }
+    var inner = pEl('div', 'pro-banner-inner');
+    var txt = pEl('div', 'pro-banner-text');
+    if (b.title) txt.appendChild(pEl('h2', 'pro-banner-title', b.title));
+    if (b.text) txt.appendChild(pEl('p', 'pro-banner-p', b.text));
+    inner.appendChild(txt);
+    var href = null, blank = false;
+    if (/^(https:\/\/|tel:|mailto:)/.test(b.link || '')) { href = b.link; blank = /^https:/.test(b.link); }
+    else { var pri = pPrimaryHref(data, displayName); if (pri) { href = pri.href; blank = pri.blank; } }
+    if (href && b.button_label) inner.appendChild(proButton(b.button_label, href, blank, 'primary'));
+    sec.appendChild(inner);
+    return sec;
+  }
+
+  function buildProTeam(data, displayName) {
+    var team = (Array.isArray(data.team) ? data.team : []).filter(function (m) { return m && m.name; }).slice(0, 8);
+    if (team.length < 2) return null;
+    var sec = pEl('section', 'pro-section pro-alt'); sec.id = 'proTeam';
+    var head = pEl('div', 'pro-head pro-head-center');
+    head.appendChild(pEl('div', 'pro-eyebrow', 'NUESTRO EQUIPO'));
+    head.appendChild(pEl('h2', 'pro-h2', 'Las personas que te atienden'));
+    sec.appendChild(head);
+    var grid = pEl('div', 'pro-team-grid');
+    team.forEach(function (m) {
+      var c = pEl('div', 'pro-team-card');
+      var ph = pEl('div', 'pro-team-photo');
+      if (/^https:\/\//.test(m.photo_url || '')) ph.style.backgroundImage = 'url("' + String(m.photo_url).replace(/"/g, '%22') + '")';
+      else ph.textContent = String(m.name).charAt(0).toUpperCase();
+      c.appendChild(ph);
+      c.appendChild(pEl('h3', 'pro-card-title', m.name));
+      if (m.role) c.appendChild(pEl('p', 'pro-card-text', m.role));
+      grid.appendChild(c);
+    });
+    sec.appendChild(grid);
+    return sec;
+  }
+
+  function proItemWa(data, displayName, name) {
+    return pWaLink(data, (proKind(data) === 'services' ? 'Hola, quiero reservar: ' : 'Hola, me interesa: ') + name + ' (' + displayName + ')');
+  }
+
+  // Página de productos o servicios completa, con fotos del inventario y filtro por categoría.
+  function buildProCatalog(data, displayName) {
+    var all = proCatalog(data);
+    if (!all.length) return null;
+    var kind = proKind(data), t = (data.design && data.design.texts) || {};
+    var sec = pEl('section', 'pro-section'); sec.id = 'proCatalog';
+    var head = pEl('div', 'pro-head pro-head-center');
+    head.appendChild(pEl('div', 'pro-eyebrow', kind === 'services' ? 'SERVICIOS' : 'PRODUCTOS'));
+    head.appendChild(pEl('h2', 'pro-h2', kind === 'services' ? 'Todos nuestros servicios' : 'Nuestros productos'));
+    sec.appendChild(head);
+    var counts = {}, cats = [];
+    all.forEach(function (it) { var c = it.category || 'General'; if (!counts[c]) { counts[c] = 0; cats.push(c); } counts[c]++; });
+    cats.sort(function (a, b) { return counts[b] - counts[a]; });
+    var cur = '', shown = 24;
+    var chips = pEl('div', 'pro-chips');
+    var grid = pEl('div', 'pro-cat-grid');
+    var moreWrap = pEl('div', 'pro-blog-more');
+    function chip(label, val) {
+      var b = pEl('button', 'pro-chip' + (cur === val ? ' active' : ''), label);
+      b.type = 'button';
+      b.onclick = function () { cur = val; shown = 24; draw(); };
+      return b;
+    }
+    function draw() {
+      chips.innerHTML = '';
+      if (cats.length > 1) { chips.appendChild(chip('Todo', '')); cats.slice(0, 14).forEach(function (c) { chips.appendChild(chip(c, c)); }); }
+      var list = all.filter(function (it) { return !cur || (it.category || 'General') === cur; });
+      grid.innerHTML = '';
+      list.slice(0, shown).forEach(function (it) {
+        var card = pEl('div', 'pro-card pro-cat-card');
+        if (it.image_url) { var im = pEl('img', 'pro-cat-img'); im.src = it.image_url; im.alt = it.name; im.loading = 'lazy'; card.appendChild(im); }
+        card.appendChild(pEl('h3', 'pro-card-title', it.name));
+        if (it.description) card.appendChild(pEl('p', 'pro-card-text pro-clamp', it.description));
+        if (typeof it.price === 'number' && it.price > 0) card.appendChild(pEl('div', 'pro-card-price', pEuro(it.price)));
+        var wa = proItemWa(data, displayName, it.name);
+        if (wa) card.appendChild(proButton(kind === 'services' ? 'Reservar' : 'Consultar', wa, true, 'ghost'));
+        grid.appendChild(card);
+      });
+      moreWrap.innerHTML = '';
+      if (list.length > shown) moreWrap.appendChild(proButton('Ver más (' + (list.length - shown) + ')', '#', false, 'ghost', function () { shown += 24; draw(); }));
+    }
+    draw();
+    sec.appendChild(chips); sec.appendChild(grid); sec.appendChild(moreWrap);
+    return sec;
+  }
+
+  // Destacados desde el inventario (tiendas de productos): 3 artículos con foto.
+  function buildProCatalogFeatured(data, d, displayName) {
+    if (proKind(data) !== 'products') return null;
+    var feat = proCatalog(data).filter(function (it) { return it.image_url && it.price > 0; }).slice(0, 3);
+    if (feat.length < 3) return null;
+    var t = d.texts || {};
+    var sec = pEl('section', 'pro-section'); sec.id = 'proFeatured';
+    var head = pEl('div', 'pro-head pro-head-center');
+    head.appendChild(pEl('div', 'pro-eyebrow', 'DESTACADOS'));
+    head.appendChild(pEl('h2', 'pro-h2', t.featured_title || 'Lo más buscado'));
+    if (t.featured_subtitle) head.appendChild(pEl('p', 'pro-sub', t.featured_subtitle));
+    sec.appendChild(head);
+    var grid = pEl('div', 'pro-grid pro-grid3');
+    feat.forEach(function (it, i) {
+      var card = pEl('div', 'pro-card pro-cat-card pro-feat' + (i === 1 ? ' pro-feat-main' : ''));
+      var im = pEl('img', 'pro-cat-img'); im.src = it.image_url; im.alt = it.name; im.loading = 'lazy'; card.appendChild(im);
+      card.appendChild(pEl('div', 'pro-feat-cat', it.category || ''));
+      card.appendChild(pEl('h3', 'pro-card-title', it.name));
+      card.appendChild(pEl('div', 'pro-feat-price', pEuro(it.price)));
+      var wa = proItemWa(data, displayName, it.name);
+      if (wa) card.appendChild(proButton('Consultar', wa, true, i === 1 ? 'primary' : 'ghost'));
+      grid.appendChild(card);
+    });
+    sec.appendChild(grid);
+    var m = pEl('div', 'pro-blog-more'); m.appendChild(proButton('Ver todos los productos', '#', false, 'ghost', function () { showPage('catalogo'); }));
+    sec.appendChild(m);
+    return sec;
+  }
+
+  // Tarifas (solo servicios): paquetes destacados + lista de precios por categoría.
+  function buildProRates(data, d, displayName) {
+    var all = proCatalog(data);
+    if (proKind(data) !== 'services' || !all.length) return null;
+    var wrap = pEl('div', ''); wrap.id = 'proRates';
+    var packs = buildProPacks(data, d, displayName, 'proRatesPacks'); if (packs) wrap.appendChild(packs);
+    var sec = pEl('section', 'pro-section' + (packs ? ' pro-alt' : ''));
+    var head = pEl('div', 'pro-head pro-head-center');
+    head.appendChild(pEl('div', 'pro-eyebrow', 'LISTA DE PRECIOS'));
+    head.appendChild(pEl('h2', 'pro-h2', 'Todas las tarifas'));
+    if ((d.texts || {}).packs_note) head.appendChild(pEl('p', 'pro-sub', d.texts.packs_note));
+    sec.appendChild(head);
+    var by = {}, order = [];
+    all.forEach(function (it) { if (!(it.price > 0)) return; var c = it.category || 'General'; if (!by[c]) { by[c] = []; order.push(c); } by[c].push(it); });
+    order.sort(function (a, b) { return by[b].length - by[a].length; });
+    var cols = pEl('div', 'pro-rates');
+    order.forEach(function (c) {
+      var box = pEl('div', 'pro-card');
+      box.appendChild(pEl('h3', 'pro-card-title', c));
+      by[c].sort(function (a, b) { return a.price - b.price; }).forEach(function (it) {
+        var row = pEl('div', 'pro-row');
+        row.appendChild(pEl('span', '', it.name));
+        row.appendChild(pEl('b', '', pEuro(it.price)));
+        box.appendChild(row);
+      });
+      cols.appendChild(box);
+    });
+    sec.appendChild(cols);
+    wrap.appendChild(sec);
+    return wrap;
+  }
+
   // Servicios definidos a mano / por la IA en el propio diseño (d.services) — para negocios
   // de servicios (masajes, peluquería…) cuyo catálogo no está en el menú digital.
-  function buildProCustomServices(d) {
+  function buildProCustomServices(d, data) {
     var list = d.services.filter(function (s) { return s && s.title; }).slice(0, 8);
     if (!list.length) return null;
     var t = d.texts || {};
@@ -1211,6 +1399,7 @@
       card.appendChild(pEl('h3', 'pro-card-title', s.title));
       if (s.text) card.appendChild(pEl('p', 'pro-card-text', s.text));
       if (s.price) card.appendChild(pEl('div', 'pro-card-price', s.price));
+      if (data && proCatalog(data).length) { card.style.cursor = 'pointer'; card.onclick = function () { showPage('catalogo'); }; }
       grid.appendChild(card);
     });
     sec.appendChild(grid);
@@ -1223,11 +1412,11 @@
   }
 
   // Tarifas / paquetes (d.packs): precio grande, duración, puntos y botón de reserva.
-  function buildProPacks(data, d, displayName) {
+  function buildProPacks(data, d, displayName, idOverride) {
     var list = Array.isArray(d.packs) ? d.packs.filter(function (p) { return p && p.name; }).slice(0, 4) : [];
     if (!list.length) return null;
     var t = d.texts || {};
-    var sec = pEl('section', 'pro-section'); sec.id = 'proPacks';
+    var sec = pEl('section', 'pro-section'); sec.id = idOverride || 'proPacks';
     var head = pEl('div', 'pro-head pro-head-center');
     head.appendChild(pEl('div', 'pro-eyebrow', t.packs_eyebrow || 'TARIFAS'));
     head.appendChild(pEl('h2', 'pro-h2', t.packs_title || 'Paquetes destacados'));
@@ -1257,7 +1446,18 @@
   }
 
   function buildProServices(data, d) {
-    if (Array.isArray(d.services) && d.services.length) return buildProCustomServices(d);
+    if (Array.isArray(d.services) && d.services.length) return buildProCustomServices(d, data);
+    if (!ITEMS.length && proCatalog(data).length) {
+      // Sin servicios definidos: se generan desde las categorías del inventario.
+      var byC = {}, ordC = [];
+      proCatalog(data).forEach(function (it) { var c = it.category || 'General'; if (!byC[c]) { byC[c] = []; ordC.push(c); } byC[c].push(it); });
+      ordC.sort(function (a, b) { return byC[b].length - byC[a].length; });
+      var auto = ordC.slice(0, 4).map(function (c) {
+        var ps = byC[c].map(function (x) { return x.price; }).filter(function (p) { return p > 0; });
+        return { title: c, text: byC[c].slice(0, 3).map(function (x) { return x.name; }).join(' · '), price: ps.length ? 'Desde ' + pEuro(Math.min.apply(null, ps)) : '' };
+      });
+      return buildProCustomServices({ services: auto, texts: d.texts }, data);
+    }
     var cats = {}, order = [];
     ITEMS.forEach(function (it) {
       var c = it.category || 'General';
@@ -1313,14 +1513,15 @@
 
     var sec = pEl('section', 'pro-section pro-alt'); sec.id = 'proAbout';
     var wrap = pEl('div', 'pro-about');
-    var photo = (/^https:\/\//.test(t.about_photo_url || '') ? t.about_photo_url : null) || (Array.isArray(data.gallery_photos) && (data.gallery_photos[1] || data.gallery_photos[0])) || data.logo_url || null;
+    var tm0 = (Array.isArray(data.team) && data.team[0] && /^https:\/\//.test(data.team[0].photo_url || '')) ? data.team[0] : null;
+    var photo = (tm0 ? tm0.photo_url : null) || (/^https:\/\//.test(t.about_photo_url || '') ? t.about_photo_url : null) || (Array.isArray(data.gallery_photos) && (data.gallery_photos[1] || data.gallery_photos[0])) || data.logo_url || null;
     if (Array.isArray(t.extra_stats)) t.extra_stats.slice(0, 2).forEach(function (s) { if (s && s.n && s.l) stats.push({ n: String(s.n), l: String(s.l) }); });
     if (photo) {
       var fig = pEl('div', 'pro-about-photo');
       var img = pEl('img'); img.src = photo; img.alt = displayName; img.loading = 'lazy';
       fig.appendChild(img);
-      var cap = pEl('div', 'pro-about-cap'); cap.appendChild(pEl('b', '', t.about_photo_name || displayName));
-      if (t.about_photo_role || data.city) cap.appendChild(pEl('span', '', t.about_photo_role || data.city));
+      var cap = pEl('div', 'pro-about-cap'); cap.appendChild(pEl('b', '', (tm0 && tm0.name) || t.about_photo_name || displayName));
+      if ((tm0 && tm0.role) || t.about_photo_role || data.city) cap.appendChild(pEl('span', '', (tm0 && tm0.role) || t.about_photo_role || data.city));
       fig.appendChild(cap);
       wrap.appendChild(fig);
     }
@@ -1397,7 +1598,7 @@
     var d = data.design || {};
     wrap.appendChild(buildProHero(data, d, displayName));
     var packs = buildProPacks(data, d, displayName);
-    var feat = packs ? null : buildProFeatured(data, d, displayName);
+    var feat = packs ? null : (ITEMS.length ? buildProFeatured(data, d, displayName) : buildProCatalogFeatured(data, d, displayName));
     [buildProServices(data, d), buildProAbout(data, d, displayName), packs, feat].forEach(function (s) { if (s) wrap.appendChild(s); });
   }
 
@@ -1543,10 +1744,18 @@
     document.documentElement.setAttribute('data-pro', '1');
     var rb = document.getElementById('ratingBar'); if (rb) rb.style.display = 'none';
     var hrt = document.getElementById('headerRating'); if (hrt) hrt.innerHTML = '';
-    ['proCta', 'proBlogHome', 'proBlogPage', 'proPostPage'].forEach(function (id) { var o = document.getElementById(id); if (o) o.remove(); });
+    ['proCta', 'proBlogHome', 'proBlogPage', 'proPostPage', 'proBanner', 'proTeam', 'proCatalog', 'proRates'].forEach(function (id) { var o = document.getElementById(id); if (o) o.remove(); });
 
     var cta = buildProCta(data, d, displayName);
     if (cta) { cta.style.order = '60'; wrap.appendChild(cta); }
+
+    // Banner editable, equipo y páginas de productos/servicios/tarifas
+    var banner = buildProBanner(data, displayName), team = buildProTeam(data, displayName);
+    var catalogSec = buildProCatalog(data, displayName), ratesSec = buildProRates(data, d, displayName);
+    if (banner) { banner.style.order = '-1'; wrap.appendChild(banner); }
+    if (team) { team.style.order = '5'; wrap.appendChild(team); }
+    if (catalogSec) { catalogSec.style.order = '10'; wrap.appendChild(catalogSec); }
+    if (ratesSec) { ratesSec.style.order = '10'; wrap.appendChild(ratesSec); }
 
     // Blog: tarjetas en inicio, listado y artículo (si la sucursal tiene guías)
     var blogHome = buildProBlogHome(), blogPage = buildProBlogPage(displayName);
@@ -1555,8 +1764,10 @@
     if (blogPage) { var pp = pEl('div', ''); pp.id = 'proPostPage'; pp.style.order = '10'; wrap.appendChild(pp); }
 
     // Una sola "página" de inicio con todo (como una web normal); la carta, aparte si es restaurante.
-    var ids = ['proHero', 'proServices', 'proAbout', 'proPacks', 'proFeatured', 'mwReviews', 'mwGallery', 'mwHours', 'mwMap', 'proBlogHome', 'proCta', 'mwChef', 'mwChefGiant'];
+    var ids = ['proBanner', 'proHero', 'proServices', 'proAbout', 'proTeam', 'proPacks', 'proFeatured', 'mwReviews', 'mwGallery', 'mwHours', 'mwMap', 'proBlogHome', 'proCta', 'mwChef', 'mwChefGiant'];
     PAGE_GROUPS = { inicio: ids, menu: ['menuLayout'] };
+    if (catalogSec) PAGE_GROUPS.catalogo = ['proCatalog'];
+    if (ratesSec) PAGE_GROUPS.tarifas = ['proRates'];
     if (blogPage) { PAGE_GROUPS.blog = ['proBlogPage']; PAGE_GROUPS.post = ['proPostPage']; }
     if (BLOG_POSTS === null && !BLOG_LOADING) {
       proFetchBlog(function () {
@@ -1581,12 +1792,13 @@
     var oldNav = document.getElementById('proNav'); if (oldNav) oldNav.remove();
     var oldCta = document.getElementById('proHeaderCta'); if (oldCta) oldCta.remove();
     var links = [{ label: 'Inicio', go: function () { proGo('proHero'); } }];
-    if (document.getElementById('proServices')) links.push({ label: SHOW_MENU ? 'Carta' : (t.services_nav || 'Servicios'), go: SHOW_MENU ? function () { showPage('menu'); } : function () { proGo('proServices'); } });
-    else if (SHOW_MENU && ITEMS.length) links.push({ label: 'Carta', go: function () { showPage('menu'); } });
-    if (document.getElementById('proAbout')) links.push({ label: 'Nosotros', go: function () { proGo('proAbout'); } });
-    if (document.getElementById('proPacks')) links.push({ label: 'Tarifas', go: function () { proGo('proPacks'); } });
+    if (SHOW_MENU && ITEMS.length) links.push({ label: 'Carta', go: function () { showPage('menu'); } });
+    else if (PAGE_GROUPS.catalogo) links.push({ label: proKind(data) === 'products' ? 'Productos' : (t.services_nav || 'Servicios'), go: function () { showPage('catalogo'); } });
+    else if (document.getElementById('proServices')) links.push({ label: t.services_nav || 'Servicios', go: function () { proGo('proServices'); } });
+    if (PAGE_GROUPS.tarifas) links.push({ label: 'Tarifas', go: function () { showPage('tarifas'); } });
+    else if (document.getElementById('proPacks')) links.push({ label: 'Tarifas', go: function () { proGo('proPacks'); } });
     if (document.getElementById('proBlogPage')) links.push({ label: 'Blog', go: function () { showPage('blog'); } });
-    if (document.getElementById('mwReviews')) links.push({ label: 'Reseñas', go: function () { proGo('mwReviews'); } });
+    if (document.getElementById('proAbout')) links.push({ label: 'Nosotros', go: function () { proGo('proAbout'); } });
     if (document.getElementById('mwHours') || document.getElementById('mwMap') || cta) links.push({ label: 'Contacto', go: function () { proGo(document.getElementById('proCta') ? 'proCta' : (document.getElementById('mwHours') ? 'mwHours' : 'mwMap')); } });
     var nav = pEl('nav', 'pro-nav'); nav.id = 'proNav';
     links.forEach(function (l) { var a = pEl('a', '', l.label); a.href = '#'; a.onclick = function (e) { e.preventDefault(); l.go(); }; nav.appendChild(a); });
