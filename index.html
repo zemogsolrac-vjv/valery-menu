@@ -482,6 +482,18 @@
   /* Pie, chef y botones flotantes */
   .mw-footer { background: #2b2320; border-radius: 28px; margin: 4px 12px 16px; padding: 30px 20px; }
   .mw-footer-name { font-family: var(--serif); font-size: 20px; font-weight: 500; }
+  .mw-footer.pro-footer { background: #1f1b16; color: rgba(255,255,255,.78); border-radius: 0; margin: 40px 0 0; padding: 56px 24px 28px; text-align: left; }
+  .pf-grid { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 1.3fr 1fr 1fr 1fr; gap: 36px; }
+  .pf-name { font-family: var(--serif); font-size: 24px; color: #fff; margin-bottom: 10px; }
+  .pf-h { font-family: var(--serif); font-size: 17px; font-weight: 500; color: #fff; margin: 0 0 14px; }
+  .pf-text { font-size: 14px; line-height: 1.65; margin: 0 0 8px; color: rgba(255,255,255,.7); }
+  .pf-list { list-style: none; margin: 0; padding: 0; font-size: 14px; line-height: 2; }
+  .pf-footer a, .pro-footer a { color: rgba(255,255,255,.85); text-decoration: none; }
+  .pro-footer a:hover { color: #fff; text-decoration: underline; }
+  .pf-btn { margin-top: 14px; }
+  .pf-copy { max-width: 1100px; margin: 40px auto 0; padding-top: 20px; border-top: 1px solid rgba(255,255,255,.12); font-size: 12.5px; color: rgba(255,255,255,.5); }
+  @media (max-width: 800px) { .pf-grid { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 520px) { .pf-grid { grid-template-columns: 1fr; } }
   .mw-chef-card .mw-chef-name { font-family: var(--serif); font-size: 22px; font-weight: 500; }
   .lang-btn, .whatsapp-fab-btn { box-shadow: 0 12px 26px -10px rgba(31,27,22,.6); }
   .rate-fab-btn { background: #2b2320; box-shadow: 0 12px 26px -10px rgba(31,27,22,.6); }
@@ -3215,6 +3227,62 @@
     footer.innerHTML = '';
     if (data.website_url && !data.advanced_web_enabled) { footer.style.display = 'none'; return; }
     footer.className = 'mw-footer';
+
+    if (PRO) {
+      footer.classList.add('pro-footer');
+      var tx = (data.design && data.design.texts) || {};
+      var wrap = pEl('div', 'pf-grid');
+      var c1 = pEl('div', 'pf-col pf-brand');
+      c1.appendChild(pEl('div', 'pf-name', displayName));
+      var tag = tx.footer_text || (data.design && data.design.hero && data.design.hero.subtitle) || '';
+      if (tag) c1.appendChild(pEl('p', 'pf-text', String(tag).slice(0, 160)));
+      wrap.appendChild(c1);
+
+      var c2 = pEl('div', 'pf-col');
+      c2.appendChild(pEl('h4', 'pf-h', 'Contacto'));
+      var ul = pEl('ul', 'pf-list');
+      function li(label, href, blank) {
+        var l = document.createElement('li'); var a = document.createElement('a');
+        a.textContent = label; a.href = href; if (blank) { a.target = '_blank'; a.rel = 'noopener'; }
+        l.appendChild(a); ul.appendChild(l); return l;
+      }
+      if (data.phone) li(data.phone, 'tel:' + String(data.phone).replace(/[^\d+]/g, ''));
+      var pri = pPrimaryHref(data, displayName);
+      if (pri && /wa\.me/.test(pri.href)) li('WhatsApp', pri.href, true);
+      var socs = [[data.instagram_url, 'Instagram'], [data.facebook_url, 'Facebook'], [data.tiktok_url, 'TikTok'], [data.twitter_url, 'X']].filter(function (s) { return s[0]; });
+      if (socs.length) {
+        var sl = document.createElement('li');
+        socs.forEach(function (s, i) {
+          if (i) sl.appendChild(document.createTextNode(' · '));
+          var a = document.createElement('a'); a.textContent = s[1]; a.href = s[0]; a.target = '_blank'; a.rel = 'noopener'; sl.appendChild(a);
+        });
+        ul.appendChild(sl);
+      }
+      c2.appendChild(ul); wrap.appendChild(c2);
+
+      var ap = [data.address, [data.postal_code, data.city].filter(Boolean).join(' ')].filter(Boolean);
+      if (ap.length) {
+        var c3 = pEl('div', 'pf-col');
+        c3.appendChild(pEl('h4', 'pf-h', 'Dónde estamos'));
+        var p3 = pEl('p', 'pf-text'); p3.style.whiteSpace = 'pre-line'; p3.textContent = ap.join('\n');
+        c3.appendChild(p3);
+        if (data.maps_url) { var mp = pEl('p', 'pf-text'); var ma = document.createElement('a'); ma.href = data.maps_url; ma.target = '_blank'; ma.rel = 'noopener'; ma.textContent = 'Ver en el mapa'; mp.appendChild(ma); c3.appendChild(mp); }
+        wrap.appendChild(c3);
+      }
+
+      if (data.opening_hours) {
+        var c4 = pEl('div', 'pf-col');
+        c4.appendChild(pEl('h4', 'pf-h', 'Horario'));
+        var p4 = pEl('p', 'pf-text'); p4.style.whiteSpace = 'pre-line'; p4.textContent = String(data.opening_hours);
+        c4.appendChild(p4);
+        if (pri && pri.href) { var bw = pEl('div', 'pf-btn'); bw.appendChild(proButton('Escribir por WhatsApp', pri.href, !!pri.blank, 'primary')); c4.appendChild(bw); }
+        wrap.appendChild(c4);
+      }
+      footer.appendChild(wrap);
+      footer.appendChild(pEl('div', 'pf-copy', '© ' + new Date().getFullYear() + ' ' + displayName));
+      footer.style.display = 'block';
+      return;
+    }
 
     var inner = document.createElement('div');
     inner.className = 'mw-footer-inner';
