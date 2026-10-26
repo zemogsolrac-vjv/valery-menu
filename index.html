@@ -1022,8 +1022,10 @@
       root.setAttribute('data-grad', tg.join(' '));
     }
     var stack = DESIGN_FONTS[d.font] || DESIGN_FONTS.sans;
-    st.setProperty('--serif', stack);
-    document.body.style.fontFamily = stack;
+    var isSerif = d.font === 'serif' || d.font === 'elegant';
+    // Acabado premium: títulos en Fraunces (serif) y texto en Inter, salvo que se pida mono/redondeada.
+    st.setProperty('--serif', isSerif ? '"Fraunces", ' + stack : (d.font === 'mono' || d.font === 'rounded' ? stack : '"Inter", ' + stack));
+    document.body.style.fontFamily = isSerif ? '"Inter", ' + DESIGN_FONTS.sans : (d.font === 'mono' || d.font === 'rounded' ? stack : '"Inter", ' + stack);
     var rad = DESIGN_RADIUS[d.radius] || DESIGN_RADIUS.soft;
     st.setProperty('--rad', rad[0]); st.setProperty('--rad-btn', rad[1]);
     st.setProperty('--dens', String(DESIGN_DENSITY[d.density] || 1));
@@ -1111,6 +1113,7 @@
   function pWaLink(data, msg) {
     if (!data.phone) return null;
     var d = String(data.phone).replace(/[^0-9]/g, '');
+    if (/^[6-9][0-9]{8}$/.test(d)) d = '34' + d; // móvil/fijo español sin prefijo
     return d ? 'https://wa.me/' + d + '?text=' + encodeURIComponent(msg) : null;
   }
   function pPrimaryHref(data, displayName) {
@@ -1163,7 +1166,7 @@
     if (pri) row.appendChild(proButton(h.cta_primary || (SHOW_MENU ? 'Reservar' : 'Contactar'), pri.href, pri.blank, 'primary'));
     if (SHOW_MENU && ITEMS.length) {
       row.appendChild(proButton(h.cta_secondary || 'Ver carta', '#', false, 'ghost', function () { showPage('menu'); }));
-    } else if (document.getElementById('proServicesProbe') || ITEMS.length) {
+    } else if (ITEMS.length || (Array.isArray(d.services) && d.services.length)) {
       row.appendChild(proButton(h.cta_secondary || 'Ver más', '#', false, 'ghost', function () { proGo('proServices'); }));
     }
     if (row.children.length) left.appendChild(row);
@@ -1187,7 +1190,74 @@
     return sec;
   }
 
+  // Servicios definidos a mano / por la IA en el propio diseño (d.services) — para negocios
+  // de servicios (masajes, peluquería…) cuyo catálogo no está en el menú digital.
+  function buildProCustomServices(d) {
+    var list = d.services.filter(function (s) { return s && s.title; }).slice(0, 8);
+    if (!list.length) return null;
+    var t = d.texts || {};
+    var sec = pEl('section', 'pro-section'); sec.id = 'proServices';
+    var head = pEl('div', 'pro-head');
+    head.appendChild(pEl('div', 'pro-eyebrow', t.services_eyebrow || 'LO QUE OFRECEMOS'));
+    head.appendChild(pEl('h2', 'pro-h2', t.services_title || 'Elige lo que necesitas'));
+    if (t.services_subtitle) head.appendChild(pEl('p', 'pro-sub', t.services_subtitle));
+    sec.appendChild(head);
+    var grid = pEl('div', 'pro-grid');
+    list.forEach(function (s, i) {
+      var card = pEl('div', 'pro-card');
+      var ic = pEl('div', 'pro-icon');
+      ic.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' + PRO_ICONS[i % PRO_ICONS.length] + '</svg>';
+      card.appendChild(ic);
+      card.appendChild(pEl('h3', 'pro-card-title', s.title));
+      if (s.text) card.appendChild(pEl('p', 'pro-card-text', s.text));
+      if (s.price) card.appendChild(pEl('div', 'pro-card-price', s.price));
+      grid.appendChild(card);
+    });
+    sec.appendChild(grid);
+    if (t.services_more) {
+      var more = pEl('p', 'pro-more', t.services_more + ' ');
+      if (t.services_more_url) { var a = pEl('a', '', t.services_more_label || 'Ver todos los precios'); a.href = t.services_more_url; a.target = '_blank'; a.rel = 'noopener'; more.appendChild(a); }
+      sec.appendChild(more);
+    }
+    return sec;
+  }
+
+  // Tarifas / paquetes (d.packs): precio grande, duración, puntos y botón de reserva.
+  function buildProPacks(data, d, displayName) {
+    var list = Array.isArray(d.packs) ? d.packs.filter(function (p) { return p && p.name; }).slice(0, 4) : [];
+    if (!list.length) return null;
+    var t = d.texts || {};
+    var sec = pEl('section', 'pro-section'); sec.id = 'proPacks';
+    var head = pEl('div', 'pro-head pro-head-center');
+    head.appendChild(pEl('div', 'pro-eyebrow', t.packs_eyebrow || 'TARIFAS'));
+    head.appendChild(pEl('h2', 'pro-h2', t.packs_title || 'Paquetes destacados'));
+    if (t.packs_subtitle) head.appendChild(pEl('p', 'pro-sub', t.packs_subtitle));
+    sec.appendChild(head);
+    var grid = pEl('div', 'pro-grid pro-grid3');
+    list.forEach(function (p, i) {
+      var card = pEl('div', 'pro-card pro-feat' + (p.highlight ? ' pro-feat-main' : ''));
+      if (p.tag) card.appendChild(pEl('div', 'pro-feat-cat', p.tag));
+      card.appendChild(pEl('h3', 'pro-card-title', p.name));
+      if (p.subtitle) card.appendChild(pEl('p', 'pro-card-text', p.subtitle));
+      var price = pEl('div', 'pro-feat-price', p.price || '');
+      if (p.duration) { var du = pEl('span', '', ' · ' + p.duration); du.style.cssText = 'font-family:inherit;font-size:14px;opacity:.6;font-weight:500'; price.appendChild(du); }
+      card.appendChild(price);
+      if (Array.isArray(p.bullets) && p.bullets.length) {
+        var ul = pEl('ul', 'pro-checks'); ul.style.margin = '6px 0 10px';
+        p.bullets.slice(0, 5).forEach(function (b) { ul.appendChild(pEl('li', '', b)); });
+        card.appendChild(ul);
+      }
+      var wa = pWaLink(data, 'Hola, quiero reservar ' + p.name + (p.duration ? ' (' + p.duration + ')' : '') + ' en ' + displayName + '.');
+      if (wa) card.appendChild(proButton(p.cta || 'Reservar ahora', wa, true, p.highlight ? 'primary' : 'ghost'));
+      grid.appendChild(card);
+    });
+    sec.appendChild(grid);
+    if (t.packs_note) sec.appendChild(pEl('p', 'pro-more', t.packs_note));
+    return sec;
+  }
+
   function buildProServices(data, d) {
+    if (Array.isArray(d.services) && d.services.length) return buildProCustomServices(d);
     var cats = {}, order = [];
     ITEMS.forEach(function (it) {
       var c = it.category || 'General';
@@ -1243,13 +1313,14 @@
 
     var sec = pEl('section', 'pro-section pro-alt'); sec.id = 'proAbout';
     var wrap = pEl('div', 'pro-about');
-    var photo = (Array.isArray(data.gallery_photos) && (data.gallery_photos[1] || data.gallery_photos[0])) || data.logo_url || null;
+    var photo = (/^https:\/\//.test(t.about_photo_url || '') ? t.about_photo_url : null) || (Array.isArray(data.gallery_photos) && (data.gallery_photos[1] || data.gallery_photos[0])) || data.logo_url || null;
+    if (Array.isArray(t.extra_stats)) t.extra_stats.slice(0, 2).forEach(function (s) { if (s && s.n && s.l) stats.push({ n: String(s.n), l: String(s.l) }); });
     if (photo) {
       var fig = pEl('div', 'pro-about-photo');
       var img = pEl('img'); img.src = photo; img.alt = displayName; img.loading = 'lazy';
       fig.appendChild(img);
-      var cap = pEl('div', 'pro-about-cap'); cap.appendChild(pEl('b', '', displayName));
-      if (data.city) cap.appendChild(pEl('span', '', data.city));
+      var cap = pEl('div', 'pro-about-cap'); cap.appendChild(pEl('b', '', t.about_photo_name || displayName));
+      if (t.about_photo_role || data.city) cap.appendChild(pEl('span', '', t.about_photo_role || data.city));
       fig.appendChild(cap);
       wrap.appendChild(fig);
     }
@@ -1325,7 +1396,9 @@
   function renderProHome(wrap, data, displayName) {
     var d = data.design || {};
     wrap.appendChild(buildProHero(data, d, displayName));
-    [buildProServices(data, d), buildProAbout(data, d, displayName), buildProFeatured(data, d, displayName)].forEach(function (s) { if (s) wrap.appendChild(s); });
+    var packs = buildProPacks(data, d, displayName);
+    var feat = packs ? null : buildProFeatured(data, d, displayName);
+    [buildProServices(data, d), buildProAbout(data, d, displayName), packs, feat].forEach(function (s) { if (s) wrap.appendChild(s); });
   }
 
   // ===== Blog (guías) de la sucursal =====
@@ -1482,7 +1555,7 @@
     if (blogPage) { var pp = pEl('div', ''); pp.id = 'proPostPage'; pp.style.order = '10'; wrap.appendChild(pp); }
 
     // Una sola "página" de inicio con todo (como una web normal); la carta, aparte si es restaurante.
-    var ids = ['proHero', 'proServices', 'proAbout', 'proFeatured', 'mwReviews', 'mwGallery', 'mwHours', 'mwMap', 'proBlogHome', 'proCta', 'mwChef', 'mwChefGiant'];
+    var ids = ['proHero', 'proServices', 'proAbout', 'proPacks', 'proFeatured', 'mwReviews', 'mwGallery', 'mwHours', 'mwMap', 'proBlogHome', 'proCta', 'mwChef', 'mwChefGiant'];
     PAGE_GROUPS = { inicio: ids, menu: ['menuLayout'] };
     if (blogPage) { PAGE_GROUPS.blog = ['proBlogPage']; PAGE_GROUPS.post = ['proPostPage']; }
     if (BLOG_POSTS === null && !BLOG_LOADING) {
@@ -1508,9 +1581,10 @@
     var oldNav = document.getElementById('proNav'); if (oldNav) oldNav.remove();
     var oldCta = document.getElementById('proHeaderCta'); if (oldCta) oldCta.remove();
     var links = [{ label: 'Inicio', go: function () { proGo('proHero'); } }];
-    if (document.getElementById('proServices')) links.push({ label: SHOW_MENU ? 'Carta' : 'Servicios', go: SHOW_MENU ? function () { showPage('menu'); } : function () { proGo('proServices'); } });
+    if (document.getElementById('proServices')) links.push({ label: SHOW_MENU ? 'Carta' : (t.services_nav || 'Servicios'), go: SHOW_MENU ? function () { showPage('menu'); } : function () { proGo('proServices'); } });
     else if (SHOW_MENU && ITEMS.length) links.push({ label: 'Carta', go: function () { showPage('menu'); } });
     if (document.getElementById('proAbout')) links.push({ label: 'Nosotros', go: function () { proGo('proAbout'); } });
+    if (document.getElementById('proPacks')) links.push({ label: 'Tarifas', go: function () { proGo('proPacks'); } });
     if (document.getElementById('proBlogPage')) links.push({ label: 'Blog', go: function () { showPage('blog'); } });
     if (document.getElementById('mwReviews')) links.push({ label: 'Reseñas', go: function () { proGo('mwReviews'); } });
     if (document.getElementById('mwHours') || document.getElementById('mwMap') || cta) links.push({ label: 'Contacto', go: function () { proGo(document.getElementById('proCta') ? 'proCta' : (document.getElementById('mwHours') ? 'mwHours' : 'mwMap')); } });
